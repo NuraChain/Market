@@ -1,0 +1,8 @@
+node_modules/
+dist/
+dist-server/
+.azeroth/
+logs/
+.env
+*.local
+.idea

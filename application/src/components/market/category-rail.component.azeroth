@@ -1,0 +1,33 @@
+import { CATEGORIES, type Category } from '../../api.ts';
+
+import { CATEGORY_ICON } from '../../lib/market.ts';
+
+import { useLocale } from '../../stores/locale.store.ts';
+
+import Chip from '../ui/chip.component.azeroth';
+
+// ONE scrollable category rail - the fix for the reference site's two cramped nav rows.
+// 'all' plus the eight categories; the rail scrolls with hidden scrollbar and snap.
+export default component CategoryRail(props: {
+    selected: Category | 'all';
+    onSelect: (category: Category | 'all') => void;
+})
+{
+    const { t } = useLocale();
+
+    <div class="rail rail-bleed rail-fade gap-1.5 py-1 sm:gap-2">
+        <Chip compact selected={ props.selected === 'all' } onSelect={ () => props.onSelect('all') }>{ t('categories.all') }</Chip>
+        <For each={ [...CATEGORIES] } key={ (category) => category }>
+            { (category) =>
+                <Chip
+                    compact
+                    icon={ CATEGORY_ICON[category] }
+                    selected={ props.selected === category }
+                    onSelect={ () => props.onSelect(category) }
+                >
+                    { t(`categories.${ category }`) }
+                </Chip>
+            }
+        </For>
+    </div>
+}

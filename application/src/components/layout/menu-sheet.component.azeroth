@@ -1,0 +1,58 @@
+﻿import { Link } from 'azerothjs';
+import { useLocale } from '../../stores/locale.store.ts';
+import { useTheme } from '../../stores/theme.store.ts';
+import { useChrome } from '../../stores/chrome.store.ts';
+
+import Icon from '../../icons/icon.component.azeroth';
+
+import Sheet from '../ui/sheet.component.azeroth';
+import Chip from '../ui/chip.component.azeroth';
+
+// The mobile Menu tab's sheet: the destinations the tab bar has no room for, plus the two
+// global switches. Navigating closes the sheet - it never lingers over a new page.
+export default component MenuSheet()
+{
+    const { t, lang, setLang } = useLocale();
+    const appearance = useTheme();
+    const chrome = useChrome();
+
+    <Sheet open={ chrome.menuOpen() } title={ t('nav.menu') } onClose={ () => chrome.close() }>
+        <div class="flex flex-col gap-1">
+            <Link
+                class="flex h-12 items-center gap-3 rounded-control px-3 text-[15px] font-semibold text-text no-underline transition-colors duration-200 hover:bg-overlay"
+                to="/leaderboard"
+                onClick={ () => chrome.close() }
+            >
+                <Icon name="trophy" size={ 20 } class="text-gold" />
+                <span>{ t('nav.leaderboard') }</span>
+                <Icon name="chevron-right" size={ 17 } class="ms-auto text-faint" />
+            </Link>
+            <Link
+                class="flex h-12 items-center gap-3 rounded-control px-3 text-[15px] font-semibold text-text no-underline transition-colors duration-200 hover:bg-overlay"
+                to="/settings"
+                onClick={ () => chrome.close() }
+            >
+                <Icon name="settings" size={ 20 } class="text-muted" />
+                <span>{ t('nav.settings') }</span>
+                <Icon name="chevron-right" size={ 17 } class="ms-auto text-faint" />
+            </Link>
+
+            <div class="my-3 h-px bg-line" aria-hidden="true"></div>
+
+            <div class="flex items-center justify-between px-3 py-2">
+                <span class="text-[14px] font-semibold text-muted">{ t('nav.theme') }</span>
+                <div class="flex gap-2">
+                    <Chip icon="moon" selected={ appearance.theme() === 'dark' } onSelect={ () => appearance.setTheme('dark') }>{ t('nav.themeDark') }</Chip>
+                    <Chip icon="sun" selected={ appearance.theme() === 'light' } onSelect={ () => appearance.setTheme('light') }>{ t('nav.themeLight') }</Chip>
+                </div>
+            </div>
+            <div class="flex items-center justify-between px-3 py-2">
+                <span class="text-[14px] font-semibold text-muted">{ t('nav.language') }</span>
+                <div class="flex gap-2">
+                    <Chip selected={ lang() === 'en' } onSelect={ () => setLang('en') }>English</Chip>
+                    <Chip selected={ lang() === 'fa' } onSelect={ () => setLang('fa') }>فارسی</Chip>
+                </div>
+            </div>
+        </div>
+    </Sheet>
+}

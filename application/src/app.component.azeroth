@@ -1,0 +1,43 @@
+import { RouterProvider, Routes, createRouter, createMemoryHistory } from 'azerothjs';
+import type { LoaderHandoff } from 'azerothjs';
+
+import { routes } from './routes.ts';
+
+import Header from './components/layout/header.component.azeroth';
+import Footer from './components/layout/footer.component.azeroth';
+import TabBar from './components/layout/tab-bar.component.azeroth';
+import AuthSheet from './components/layout/auth-sheet.component.azeroth';
+import MenuSheet from './components/layout/menu-sheet.component.azeroth';
+import Toasts from './components/ui/toasts.component.azeroth';
+
+// The app frame: one viewport-high column where the SCROLL REGION is the inner div, not
+// the window - so the scrollbar ends exactly where the tab bar begins, and the tab bar owns
+// the full screen width below it. Inside the scroll region a min-h-full column pins the
+// footer to the bottom of short pages. overflow-x-hidden is the belt-and-braces guard: no
+// stray wide child may ever hand the page a horizontal scrollbar.
+export default component App(props: { url?: string; handoff?: LoaderHandoff })
+{
+    const router = createRouter({
+        routes,
+        history: props.url !== undefined ? createMemoryHistory(props.url) : undefined,
+        initialLoaderData: props.handoff
+    });
+
+    <RouterProvider router={ router }>
+        <div class="flex h-dvh flex-col bg-surface text-text">
+            <div class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+                <div class="flex min-h-full flex-col">
+                    <Header />
+                    <main class="flex-1 pb-6">
+                        <Routes fallback={ () => <h1 class="p-8 text-center text-muted">404</h1> } />
+                    </main>
+                    <Footer />
+                </div>
+            </div>
+            <TabBar />
+            <AuthSheet />
+            <MenuSheet />
+            <Toasts />
+        </div>
+    </RouterProvider>
+}

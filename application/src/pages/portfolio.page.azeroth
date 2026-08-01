@@ -1,0 +1,262 @@
+﻿import { Link } from 'azerothjs';
+import { client, PERIODS, type Market, type Period, type Position } from '../api.ts';
+
+import { shortAddress, addressGradient } from '../lib/wallet.ts';
+import { pageOf } from '../lib/paged.ts';
+
+import { useLocale } from '../stores/locale.store.ts';
+import { useMarkets } from '../stores/markets.store.ts';
+import { useChrome } from '../stores/chrome.store.ts';
+import { useSession } from '../stores/session.store.ts';
+import { useToasts } from '../stores/toasts.store.ts';
+
+import { formatMoney, formatSigned, formatPrice, formatTimeAgo } from '../i18n/format.ts';
+
+import Chart from '../components/ui/chart.component.azeroth';
+import Ticker from '../components/ui/ticker.component.azeroth';
+import Skeleton from '../components/ui/skeleton.component.azeroth';
+import SkeletonList from '../components/ui/skeleton-list.component.azeroth';
+import Badge from '../components/ui/badge.component.azeroth';
+import Button from '../components/ui/button.component.azeroth';
+import Card from '../components/ui/card.component.azeroth';
+import StatTile from '../components/ui/stat-tile.component.azeroth';
+import EmptyState from '../components/ui/empty-state.component.azeroth';
+import PillGroup from '../components/ui/pill-group.component.azeroth';
+import { cardClass } from '../components/ui/variants.ts';
+import Chip from '../components/ui/chip.component.azeroth';
+import Tabs from '../components/ui/tabs.component.azeroth';
+import Input from '../components/ui/input.component.azeroth';
+import Select from '../components/ui/select.component.azeroth';
+import Pagination from '../components/ui/pagination.component.azeroth';
+
+// The signed-in dashboard (the reference's profile page): identity header, stats row, the
+// P/L curve with period pills, then Positions/Activity. Signed out, the page is a designed
+// connect prompt - the data never loads for a visitor who cannot own it.
+export default component Portfolio()
+{
+    const { t, lang, text } = useLocale();
+    const markets = useMarkets();
+    const chrome = useChrome();
+    const session = useSession();
+
+    const toasts = useToasts();
+    const demoOnly = (): void => { toasts.push('info', t('toast.uiOnly'), 'info'); };
+
+    state period: Period = 'week';
+    state tab = 'positions';
+    state statusFilter: 'active' | 'closed' = 'active';
+    state query = '';
+    state valueDescending = true;
+    state positionsPage = 1;
+    state activityPage = 1;
+
+    resource summary = (on: boolean) => { void on; return client.portfolio.summary(); }
+        with { source: session.connected() };
+    resource positions = (on: boolean) => { void on; return client.portfolio.positions(); }
+        with { source: session.connected() };
+    resource profitCurve = (key: string) =>
+        client.portfolio.series({ query: { period: key.split('|')[1] as Period } })
+        with { source: session.connected() ? `pl|${ period }` : false };
+    resource activity = (on: boolean) => { void on; return client.portfolio.activity(); }
+        with { source: session.connected() && tab === 'activity' };
+
+    derived marketOf = (id: string): Market | undefined =>
+        (markets.data() ?? []).find((market) => market.id === id);
+
+    derived valueOf = (position: Position): number =>
+    {
+        const outcome = marketOf(position.marketId)?.outcomes.find((candidate) => candidate.id === position.outcomeId);
+        const price = outcome?.price ?? 0;
+        return position.shares * (position.side === 'yes' ? price : 1 - price);
+    };
+
+    derived gainOf = (position: Position): number => valueOf(position) - position.shares * position.avgPrice;
+
+    derived biggestWin = (positions.data() ?? []).reduce((best, position) => Math.max(best, gainOf(position)), 0);
+
+    derived visiblePositions = statusFilter === 'closed'
+        ? []
+        : (positions.data() ?? [])
+            .filter((position) =>
+            {
+                const market = marketOf(position.marketId);
+                return market === undefined || query.trim() === ''
+                    ? true
+                    : market.title.en.toLowerCase().includes(query.trim().toLowerCase()) || market.title.fa.includes(query.trim());
+            })
+            .sort((left, right) => (valueDescending ? valueOf(right) - valueOf(left) : valueOf(left) - valueOf(right)));
+
+    derived positionsView = pageOf(visiblePositions, positionsPage, 10);
+    derived activityView = pageOf(activity.data() ?? [], activityPage, 15);
+
+    <section class="shell py-5">
+        <div class="mx-auto max-w-5xl">
+            <Show
+                when={ session.connected() }
+                fallback={
+                    <EmptyState icon="wallet" tone="brand" size="lg" heading title={ t('profile.connectTitle') } hint={ t('profile.connectHint') }>
+                        <Button onClick={ () => chrome.openAuth() }>{ t('auth.title') }</Button>
+                    </EmptyState>
+                }
+            >
+                <header class="mb-5 flex flex-wrap items-center gap-3 motion-safe:animate-rise">
+                    <span class="h-11 w-11 shrink-0 overflow-hidden rounded-full ring-2 ring-line sm:h-12 sm:w-12" style={ `background: ${ addressGradient(session.address()) }` } aria-hidden="true"></span>
+                    <div class="min-w-0 flex-1">
+                        <h1 class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[17px] font-bold tracking-tight sm:text-xl">
+                            <span class="truncate">IntelligentQuantum</span>
+                            <Badge tone="brand" icon="verified">{ t('settings.verified') }</Badge>
+                        </h1>
+                        <p class="nums latin-nums truncate text-[12px] text-faint" dir="ltr">{ shortAddress(session.address()) } · { t('profile.joined') }</p>
+                    </div>
+                    <span class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:shrink-0">
+                        <Button variant="gold" size="sm" icon="deposit" onClick={ () => demoOnly() }>{ t('nav.deposit') }</Button>
+                        <Button variant="outline" size="sm" onClick={ () => demoOnly() }>{ t('profile.withdraw') }</Button>
+                    </span>
+                </header>
+
+                <Show when={ summary.loading() }>
+                    <Skeleton class="mb-5 h-40 rounded-card" />
+                </Show>
+                <Show when={ summary.data() }>
+                    { (data) =>
+                        <div class="mb-8">
+                            <div class="mb-3 grid grid-cols-3 gap-2 motion-safe:animate-rise sm:gap-3">
+                                <StatTile label={ t('profile.positionsValue') } value={ formatMoney(data().current, lang()) } />
+                                <StatTile label={ t('profile.biggestWin') } value={ formatSigned(biggestWin, lang()) } tone="yes" />
+                                <StatTile label={ t('profile.predictions') } value={ String((positions.data() ?? []).length) } />
+                            </div>
+
+                            <Card animate="rise">
+                                <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                                    <div class="min-w-0">
+                                        <p class="text-[13px] text-muted">{ t('portfolio.profitLoss') }</p>
+                                        <p class={ data().profit >= 0 ? 'text-2xl font-bold text-yes sm:text-3xl' : 'text-2xl font-bold text-no sm:text-3xl' }><Ticker text={ formatSigned(data().profit, lang()) } value={ data().profit } /></p>
+                                        <p class="nums mt-0.5 text-[12px] text-faint">{ formatSigned(data().profitToday, lang()) } { t('common.today') } · { t('portfolio.balance') }: { formatMoney(data().balance, lang()) }</p>
+                                    </div>
+                                    <PillGroup
+                                        items={ [...PERIODS].map((entry) => ({ id: entry, label: t(`leaderboard.${ entry }`) })) }
+                                        active={ period }
+                                        onChange={ (next) => period = next as Period }
+                                        class="max-w-full overflow-x-auto"
+                                    />
+                                </div>
+                                <div class="h-32">
+                                    <Show when={ !profitCurve.loading() } fallback={ <Skeleton class="h-full rounded-control" /> }>
+                                        <Chart points={ profitCurve.data()?.points ?? [] } tone={ data().profit >= 0 ? 'brand' : 'no' } class="h-full" />
+                                    </Show>
+                                </div>
+                            </Card>
+                        </div>
+                    }
+                </Show>
+
+                <Tabs
+                    tabs={ [
+                        { id: 'positions', label: t('portfolio.positions') },
+                        { id: 'activity', label: t('portfolio.activity') }
+                    ] }
+                    active={ tab }
+                    onChange={ (next) => tab = next }
+                />
+
+                <Show when={ tab === 'positions' }>
+                    <div class="pt-3">
+                        <div class="mb-3 flex flex-wrap items-center gap-2">
+                            <Chip compact selected={ statusFilter === 'active' } onSelect={ () => { statusFilter = 'active'; positionsPage = 1; } }>{ t('profile.active') }</Chip>
+                            <Chip compact selected={ statusFilter === 'closed' } onSelect={ () => { statusFilter = 'closed'; positionsPage = 1; } }>{ t('profile.closed') }</Chip>
+                            <div class="min-w-40 flex-1">
+                                <Input icon="search" label={ t('profile.searchPositions') } placeholder={ t('profile.searchPositions') } value={ query } onInput={ (next) => { query = next; positionsPage = 1; } } />
+                            </div>
+                            <Select
+                                options={ [
+                                    { id: 'desc', label: t('portfolio.valueHigh'), icon: 'sort' as const },
+                                    { id: 'asc', label: t('portfolio.valueLow'), icon: 'sort' as const }
+                                ] }
+                                value={ valueDescending ? 'desc' : 'asc' }
+                                onChange={ (next) => { valueDescending = next === 'desc'; positionsPage = 1; } }
+                                label={ t('portfolio.current') }
+                            />
+                        </div>
+
+                        <Show when={ positions.loading() || markets.loading() }>
+                            <SkeletonList count={ 3 } height="h-20" radius="card" gap="md" />
+                        </Show>
+
+                        <Show when={ !positions.loading() && !markets.loading() }>
+                            <Show
+                                when={ visiblePositions.length > 0 }
+                                fallback={
+                                    <EmptyState
+                                        icon="wallet"
+                                        title={ statusFilter === 'closed' ? t('profile.noClosed') : t('portfolio.empty') }
+                                        hint={ statusFilter === 'closed' ? t('profile.noClosedHint') : t('portfolio.emptyHint') }
+                                    >
+                                        <Link to="/browse" class="no-underline"><Button variant="primary" icon="flame">{ t('portfolio.explore') }</Button></Link>
+                                    </EmptyState>
+                                }
+                            >
+                                <ul class="grid grid-cols-1 gap-3">
+                                    <For each={ positionsView.rows } key={ (position) => position.id }>
+                                        { (position) =>
+                                            <li>
+                                                <Show when={ marketOf(position.marketId) }>
+                                                    { (market) =>
+                                                        <Link to={ `/market/${ market().id }` } class={ `${ cardClass({ interactive: true, animate: 'rise' }) } flex items-center gap-3 text-text no-underline` }>
+                                                            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-overlay text-xl" aria-hidden="true">{ market().emoji }</span>
+                                                            <span class="min-w-0 flex-1">
+                                                                <span class="block truncate text-[14px] font-bold">{ text(market().title) }</span>
+                                                                <span class="mt-0.5 flex items-center gap-2 text-[12px] text-muted">
+                                                                    <Badge tone={ position.side === 'yes' ? 'yes' : 'no' }>{ position.side === 'yes' ? t('market.yes') : t('market.no') }</Badge>
+                                                                    <span class="nums">{ position.shares } × { formatPrice(position.avgPrice, lang()) }</span>
+                                                                </span>
+                                                            </span>
+                                                            <span class="text-end">
+                                                                <span class="nums block text-[15px] font-bold">{ formatMoney(valueOf(position), lang()) }</span>
+                                                                <span class={ gainOf(position) >= 0 ? 'nums block text-[12px] font-semibold text-yes' : 'nums block text-[12px] font-semibold text-no' }>{ formatSigned(gainOf(position), lang()) }</span>
+                                                            </span>
+                                                        </Link>
+                                                    }
+                                                </Show>
+                                            </li>
+                                        }
+                                    </For>
+                                </ul>
+                                <div class="mt-5">
+                                    <Pagination page={ positionsView.current } pages={ positionsView.pages } onChange={ (next) => positionsPage = next } />
+                                </div>
+                            </Show>
+                        </Show>
+                    </div>
+                </Show>
+
+                <Show when={ tab === 'activity' && activity.loading() }>
+                    <SkeletonList count={ 3 } height="h-10" class="pt-3" />
+                </Show>
+                <Show when={ tab === 'activity' && !activity.loading() }>
+                    <ul class="flex flex-col pt-3">
+                        <For each={ activityView.rows } key={ (entry) => entry.id }>
+                            { (entry) =>
+                                <li class="flex items-center gap-3 border-b border-line py-2.5 text-[13px] last:border-b-0">
+                                    <span class={ entry.side === 'yes' ? 'h-2 w-2 shrink-0 rounded-full bg-yes' : 'h-2 w-2 shrink-0 rounded-full bg-no' } aria-hidden="true"></span>
+                                    <span class="min-w-0 flex-1 truncate">
+                                        <span class="text-muted">{ entry.action === 'buy' ? t('market.bought') : t('market.sold') } </span>
+                                        <span class="nums font-semibold">{ entry.shares }</span>
+                                        <span class={ entry.side === 'yes' ? 'font-semibold text-yes' : 'font-semibold text-no' }> { entry.side === 'yes' ? t('market.yes') : t('market.no') } </span>
+                                        <Show when={ marketOf(entry.marketId) }>
+                                            { (market) => <span class="text-muted">· { text(market().title) }</span> }
+                                        </Show>
+                                    </span>
+                                    <span class="nums shrink-0 text-muted">@ { formatPrice(entry.price, lang()) }</span>
+                                    <span class="shrink-0 text-faint">{ formatTimeAgo(entry.at, lang()) }</span>
+                                </li>
+                            }
+                        </For>
+                    </ul>
+                    <div class="mt-5">
+                        <Pagination page={ activityView.current } pages={ activityView.pages } onChange={ (next) => activityPage = next } />
+                    </div>
+                </Show>
+            </Show>
+        </div>
+    </section>
+}

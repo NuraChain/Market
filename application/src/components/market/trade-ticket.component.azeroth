@@ -1,0 +1,130 @@
+﻿import type { Market, Outcome, Side } from '../../api.ts';
+import { useLocale } from '../../stores/locale.store.ts';
+import { useSession } from '../../stores/session.store.ts';
+import { useToasts } from '../../stores/toasts.store.ts';
+
+import { formatMoney, formatPrice } from '../../i18n/format.ts';
+
+import Icon from '../../icons/icon.component.azeroth';
+
+import Button from '../ui/button.component.azeroth';
+
+// The trade ticket - one component, two homes: the desktop right-column panel and the
+// mobile bottom sheet render exactly this. Signed out, the CTA becomes connect-wallet
+// (via onConnect so the host can close its own sheet first - one surface, ever).
+// UI phase: the math is live, the order is not.
+export default component TradeTicket(props: {
+    market: Market;
+    outcome: Outcome;
+    side: Side;
+    onSideChange: (side: Side) => void;
+    onConnect?: () => void;
+})
+{
+    const { t, lang, text } = useLocale();
+    const session = useSession();
+    const toasts = useToasts();
+
+    state amount = 25;
+
+    derived price = props.side === 'yes' ? props.outcome.price : 1 - props.outcome.price;
+    derived shares = price > 0 ? amount / price : 0;
+    derived payout = shares * 1;
+
+    <div class="flex flex-col gap-4">
+        <Show when={ props.market.outcomes.length > 1 }>
+            <p class="flex items-center gap-2 text-[13px] font-semibold text-muted">
+                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-overlay text-[12px]" aria-hidden="true">{ props.market.emoji }</span>
+                { text(props.outcome.label) }
+            </p>
+        </Show>
+
+        <div class="grid grid-cols-2 gap-2 rounded-control bg-overlay p-1" role="radiogroup" aria-label={ t('market.outcomes') }>
+            <button
+                class={ props.side === 'yes'
+                    ? 'flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-[7px] bg-yes-soft text-[14px] font-bold text-yes'
+                    : 'flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-[7px] text-[14px] font-semibold text-muted transition-colors duration-200 hover:text-text' }
+                type="button"
+                role="radio"
+                aria-checked={ props.side === 'yes' ? 'true' : 'false' }
+                onClick={ () => props.onSideChange('yes') }
+            >
+                <Icon name="circle-check" size={ 16 } />
+                <span>{ t('market.yes') }</span>
+                <span class="nums">{ formatPrice(props.outcome.price, lang()) }</span>
+            </button>
+            <button
+                class={ props.side === 'no'
+                    ? 'flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-[7px] bg-no-soft text-[14px] font-bold text-no'
+                    : 'flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-[7px] text-[14px] font-semibold text-muted transition-colors duration-200 hover:text-text' }
+                type="button"
+                role="radio"
+                aria-checked={ props.side === 'no' ? 'true' : 'false' }
+                onClick={ () => props.onSideChange('no') }
+            >
+                <Icon name="circle-x" size={ 16 } />
+                <span>{ t('market.no') }</span>
+                <span class="nums">{ formatPrice(1 - props.outcome.price, lang()) }</span>
+            </button>
+        </div>
+
+        <div>
+            <label class="mb-1.5 block text-[13px] font-semibold text-muted" for="trade-amount">{ t('market.amount') }</label>
+            <div class="relative">
+                <span class="pointer-events-none absolute inset-y-0 start-3.5 flex items-center text-muted" aria-hidden="true">$</span>
+                <input
+                    id="trade-amount"
+                    class="nums h-12 w-full rounded-control border border-line bg-raised ps-8 pe-3.5 text-lg font-bold text-text transition-colors duration-200 focus:border-brand focus:outline-none"
+                    type="number"
+                    inputmode="decimal"
+                    min="0"
+                    bind:value={ amount }
+                />
+            </div>
+            <div class="mt-2 flex gap-2">
+                <button class="h-9 flex-1 cursor-pointer rounded-control bg-overlay text-[13px] font-semibold text-muted transition duration-200 hover:text-text active:scale-95" type="button" onClick={ () => amount = amount + 10 }>+10</button>
+                <button class="h-9 flex-1 cursor-pointer rounded-control bg-overlay text-[13px] font-semibold text-muted transition duration-200 hover:text-text active:scale-95" type="button" onClick={ () => amount = amount + 50 }>+50</button>
+                <button class="h-9 flex-1 cursor-pointer rounded-control bg-overlay text-[13px] font-semibold text-muted transition duration-200 hover:text-text active:scale-95" type="button" onClick={ () => amount = amount + 100 }>+100</button>
+                <button class="h-9 flex-1 cursor-pointer rounded-control bg-overlay text-[13px] font-semibold text-muted transition duration-200 hover:text-text active:scale-95" type="button" onClick={ () => amount = 1240 }>{ t('common.max') }</button>
+            </div>
+        </div>
+
+        <dl class="flex flex-col gap-2 border-t border-line pt-3 text-[14px]">
+            <div class="flex justify-between">
+                <dt class="text-muted">{ t('market.pricePerShare') }</dt>
+                <dd class="nums font-semibold">{ formatPrice(price, lang()) }</dd>
+            </div>
+            <div class="flex justify-between">
+                <dt class="text-muted">{ t('market.shares') }</dt>
+                <dd class="nums font-semibold">{ shares.toFixed(1) }</dd>
+            </div>
+            <div class="flex justify-between text-[16px]">
+                <dt class="font-semibold">{ t('market.payoutIfRight') }</dt>
+                <dd class="nums font-bold text-brand">{ formatMoney(payout, lang()) }</dd>
+            </div>
+        </dl>
+
+        <Show
+            when={ session.connected() }
+            fallback={
+                <Button variant="primary" size="lg" block icon="wallet" onClick={ () => props.onConnect?.() }>
+                    { t('auth.title') }
+                </Button>
+            }
+        >
+            <Button
+                variant={ props.side === 'yes' ? 'primary' : 'danger' }
+                size="lg"
+                block
+                disabled={ amount <= 0 }
+                onClick={ () => toasts.push('info', t('toast.orderPreview'), 'info') }
+            >
+                { t('market.buy') }
+            </Button>
+        </Show>
+        <p class="flex items-center gap-1.5 text-[12px] text-faint">
+            <Icon name="info" size={ 13 } />
+            <span>{ t('market.uiOnly') }</span>
+        </p>
+    </div>
+}

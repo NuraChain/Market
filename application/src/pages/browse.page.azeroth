@@ -1,0 +1,180 @@
+import type { Category, Market } from '../api.ts';
+
+import { matchesQuery } from '../lib/market.ts';
+import { pageOf } from '../lib/paged.ts';
+
+import { useLocale } from '../stores/locale.store.ts';
+import { useMarkets } from '../stores/markets.store.ts';
+import { useFavorites } from '../stores/favorites.store.ts';
+
+import Icon from '../icons/icon.component.azeroth';
+
+import CategoryRail from '../components/market/category-rail.component.azeroth';
+import MarketCard from '../components/market/market-card.component.azeroth';
+import Skeleton from '../components/ui/skeleton.component.azeroth';
+import Input from '../components/ui/input.component.azeroth';
+import Chip from '../components/ui/chip.component.azeroth';
+import Button from '../components/ui/button.component.azeroth';
+import Select from '../components/ui/select.component.azeroth';
+import Sheet from '../components/ui/sheet.component.azeroth';
+import Pagination from '../components/ui/pagination.component.azeroth';
+import Tooltip from '../components/ui/tooltip.component.azeroth';
+import EmptyState from '../components/ui/empty-state.component.azeroth';
+import { MARKET_GRID } from '../components/ui/variants.ts';
+
+const PAGE_SIZE = 12;
+
+export default component Browse()
+{
+    const { t } = useLocale();
+    const markets = useMarkets();
+    const favorites = useFavorites();
+
+    state query = '';
+    state category: Category | 'all' = 'all';
+    state sort = 'volume';
+    state watchOnly = false;
+    state hideSports = false;
+    state hideCrypto = false;
+    state page = 1;
+    state filtersOpen = false;
+
+    derived sortOptions = [
+        { id: 'volume', label: t('browse.sortVolume'), icon: 'volume' as const },
+        { id: 'newest', label: t('browse.sortNewest'), icon: 'sparkles' as const },
+        { id: 'ending', label: t('browse.sortEnding'), icon: 'clock' as const }
+    ];
+
+    derived filtered = (markets.data() ?? [])
+        .filter((market: Market) =>
+            (category === 'all' || market.category === category)
+            && matchesQuery(market, query)
+            && (!watchOnly || favorites.has(market.id))
+            && (!hideSports || market.category !== 'sports')
+            && (!hideCrypto || market.category !== 'crypto'))
+        .sort((left: Market, right: Market) =>
+        {
+            if (sort === 'newest')
+            {
+                return right.createdAt.localeCompare(left.createdAt);
+            }
+            if (sort === 'ending')
+            {
+                return left.endsAt.localeCompare(right.endsAt);
+            }
+            return right.volume - left.volume;
+        });
+
+    derived paged = pageOf(filtered, page, PAGE_SIZE);
+
+    const reset = (): void =>
+    {
+        query = '';
+        category = 'all';
+        watchOnly = false;
+        hideSports = false;
+        hideCrypto = false;
+        page = 1;
+    };
+
+    <section class="shell py-5">
+        <h1 class="mb-5 text-2xl font-bold tracking-tight motion-safe:animate-rise">{ t('browse.title') }</h1>
+
+        <div class="mb-3 flex items-center gap-2 motion-safe:animate-rise">
+            <div class="min-w-0 flex-1">
+                <Input
+                    icon="search"
+                    label={ t('nav.search') }
+                    placeholder={ t('nav.search') }
+                    value={ query }
+                    onInput={ (next) => { query = next; page = 1; } }
+                />
+            </div>
+            <span class="sm:hidden">
+                <Tooltip label={ t('browse.filters') }>
+                    <button
+                        class="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-control border border-line text-muted transition-colors duration-200 hover:text-text"
+                        type="button"
+                        aria-label={ t('browse.filters') }
+                        onClick={ () => filtersOpen = true }
+                    >
+                        <Icon name="filters" size={ 18 } />
+                    </button>
+                </Tooltip>
+            </span>
+        </div>
+
+        <div class="mb-3">
+            <CategoryRail selected={ category } onSelect={ (next) => { category = next; page = 1; } } />
+        </div>
+
+        <div class="mb-5 hidden flex-wrap items-center gap-2 sm:flex">
+            <Select
+                options={ sortOptions }
+                value={ sort }
+                onChange={ (next) => { sort = next; page = 1; } }
+                label={ t('browse.sortLabel') }
+            />
+            <Chip compact icon="bookmark" selected={ watchOnly } onSelect={ () => { watchOnly = !watchOnly; page = 1; } }>{ t('browse.watchlist') }</Chip>
+            <Chip compact selected={ hideSports } onSelect={ () => { hideSports = !hideSports; page = 1; } }>{ t('browse.hideSports') }</Chip>
+            <Chip compact selected={ hideCrypto } onSelect={ () => { hideCrypto = !hideCrypto; page = 1; } }>{ t('browse.hideCrypto') }</Chip>
+        </div>
+
+        <Show when={ markets.loading() }>
+            <div class={ MARKET_GRID }>
+                <Skeleton class="h-44 rounded-card" />
+                <Skeleton class="h-44 rounded-card" />
+                <Skeleton class="h-44 rounded-card" />
+                <Skeleton class="h-44 rounded-card" />
+                <Skeleton class="h-44 rounded-card" />
+                <Skeleton class="h-44 rounded-card" />
+            </div>
+        </Show>
+
+        <Show when={ !markets.loading() }>
+            <Show
+                when={ paged.rows.length > 0 }
+                fallback={
+                    <EmptyState
+                        icon={ watchOnly ? 'bookmark' : 'search' }
+                        title={ watchOnly ? t('browse.emptyWatchlist') : t('browse.noResults') }
+                        hint={ watchOnly ? t('browse.emptyWatchlistHint') : t('browse.noResultsHint') }
+                    >
+                        <Button variant="outline" onClick={ () => reset() }>{ t('browse.clearFilters') }</Button>
+                    </EmptyState>
+                }
+            >
+                <div class={ MARKET_GRID }>
+                    <For each={ paged.rows } key={ (market) => market.id }>
+                        { (market) => <MarketCard market={ market } /> }
+                    </For>
+                </div>
+                <div class="mt-6">
+                    <Pagination page={ paged.current } pages={ paged.pages } onChange={ (next) => page = next } />
+                </div>
+            </Show>
+        </Show>
+
+        <Sheet open={ filtersOpen } title={ t('browse.filters') } onClose={ () => filtersOpen = false }>
+            <div class="flex flex-col gap-4">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-[14px] font-bold">{ t('browse.sortLabel') }</span>
+                    <Select
+                        options={ sortOptions }
+                        value={ sort }
+                        onChange={ (next) => { sort = next; page = 1; } }
+                        label={ t('browse.sortLabel') }
+                    />
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <Chip icon="bookmark" selected={ watchOnly } onSelect={ () => { watchOnly = !watchOnly; page = 1; } }>{ t('browse.watchlist') }</Chip>
+                    <Chip selected={ hideSports } onSelect={ () => { hideSports = !hideSports; page = 1; } }>{ t('browse.hideSports') }</Chip>
+                    <Chip selected={ hideCrypto } onSelect={ () => { hideCrypto = !hideCrypto; page = 1; } }>{ t('browse.hideCrypto') }</Chip>
+                </div>
+                <Button block onClick={ () => filtersOpen = false }>
+                    { t('browse.apply') } ({ filtered.length })
+                </Button>
+            </div>
+        </Sheet>
+    </section>
+}

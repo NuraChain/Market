@@ -1,0 +1,23 @@
+{
+    "name": "auctionhouse",
+    "private": true,
+    "version": "0.0.0",
+    "type": "module",
+    "engines": {
+        "node": ">=24"
+    },
+    "workspaces": [
+        "application",
+        "server"
+    ],
+    "scripts": {
+        "dev": "azeroth dev",
+        "check": "azeroth check",
+        "build": "azeroth build",
+        "test": "azeroth test",
+        "start": "npm start --workspace server"
+    },
+    "devDependencies": {
+        "@azerothjs/cli": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/cli"
+    }
+}

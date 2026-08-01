@@ -1,0 +1,90 @@
+﻿import { Link } from 'azerothjs';
+import type { Market } from '../../api.ts';
+
+import { isBinary, leadPrice } from '../../lib/market.ts';
+
+import { useLocale } from '../../stores/locale.store.ts';
+
+import { formatPercent, formatVolume, formatDateTimeShort } from '../../i18n/format.ts';
+
+import Icon from '../../icons/icon.component.azeroth';
+
+import ChanceRing from '../ui/chance-ring.component.azeroth';
+import Tooltip from '../ui/tooltip.component.azeroth';
+import { cardClass } from '../ui/variants.ts';
+import FavoriteButton from './favorite-button.component.azeroth';
+import OutcomePair from './outcome-pair.component.azeroth';
+
+// The market card - the product's atom. Fixes the reference site's defects by contract:
+// full-height outcome buttons with price on them, resolve date + volume always visible,
+// YES/NO always icon + label, one dual price convention. The meta row holds EXACTLY two
+// items (volume, timer chip) so it can never wrap; trending/featured are icon marks on the
+// title row, not row-crowding text badges. The title reserves two lines so card tops align.
+export default component MarketCard(props: { market: Market })
+{
+    const { t, lang, text } = useLocale();
+
+    derived detailPath = `/market/${ props.market.id }`;
+    derived topOutcomes = props.market.outcomes.slice(0, 3);
+
+    <article class={ `${ cardClass({ interactive: true, animate: 'rise' }) } group flex h-full flex-col hover:shadow-lg` }>
+        <div class="mb-3 flex items-start gap-3">
+            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-overlay text-xl" aria-hidden="true">{ props.market.emoji }</span>
+            <Link to={ detailPath } class="min-h-[2.75em] min-w-0 flex-1 text-[15px] font-bold leading-snug text-text no-underline transition-colors duration-200 line-clamp-2 group-hover:text-brand">
+                { text(props.market.title) }
+            </Link>
+            <span class="flex shrink-0 items-center gap-1">
+                <FavoriteButton marketId={ props.market.id } />
+                <Show when={ props.market.trending }>
+                    <Tooltip label={ t('home.trending') }>
+                        <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brand-soft text-brand" role="img" aria-label={ t('home.trending') }>
+                            <Icon name="flame" size={ 13 } />
+                        </span>
+                    </Tooltip>
+                </Show>
+                <Show when={ props.market.featured }>
+                    <Tooltip label={ t('home.featured') }>
+                        <span class="flex h-6 w-6 items-center justify-center rounded-full bg-gold-soft text-gold" role="img" aria-label={ t('home.featured') }>
+                            <Icon name="sparkles" size={ 13 } />
+                        </span>
+                    </Tooltip>
+                </Show>
+                <Show when={ isBinary(props.market) }>
+                    <span class="relative ms-1 flex h-11 w-11 items-center justify-center">
+                        <span class="absolute inset-0"><ChanceRing share={ leadPrice(props.market) } size={ 44 } /></span>
+                        <span class="nums relative text-[11px] font-bold text-brand">{ formatPercent(leadPrice(props.market), lang()) }</span>
+                    </span>
+                </Show>
+            </span>
+        </div>
+
+        <Show
+            when={ isBinary(props.market) }
+            fallback={
+                <div class="mb-3 flex flex-col gap-1.5">
+                    <For each={ topOutcomes } key={ (outcome) => outcome.id }>
+                        { (outcome) =>
+                            <Link to={ detailPath } class="flex h-9 items-center gap-2 rounded-control bg-overlay px-3 text-[13px] font-semibold text-text no-underline transition duration-200 hover:bg-brand-soft">
+                                <span class="min-w-0 flex-1 truncate">{ text(outcome.label) }</span>
+                                <span class="nums text-brand">{ formatPercent(outcome.price, lang()) }</span>
+                            </Link>
+                        }
+                    </For>
+                    <Show when={ props.market.outcomes.length > 3 }>
+                        <Link to={ detailPath } class="px-3 text-[12px] font-semibold text-faint no-underline hover:text-muted">{ t('common.seeMore') }</Link>
+                    </Show>
+                </div>
+            }
+        >
+            <OutcomePair yesPrice={ leadPrice(props.market) } to={ detailPath } class="mb-3" />
+        </Show>
+
+        <div class="mt-auto flex items-center justify-between gap-3 text-[12px] text-faint">
+            <span class="nums flex items-center gap-1"><Icon name="volume" size={ 13 } />{ formatVolume(props.market.volume, lang()) }</span>
+            <span class="nums flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-line px-2 py-0.5">
+                <Icon name="clock" size={ 12 } />
+                { formatDateTimeShort(props.market.endsAt, lang()) }
+            </span>
+        </div>
+    </article>
+}

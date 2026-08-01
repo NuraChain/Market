@@ -1,0 +1,44 @@
+import { createEffect, type Child } from 'azerothjs';
+
+// A token-matched tooltip for icon-only controls: hover AND keyboard focus reveal it,
+// touch never does (hover-less devices get nothing - the control's aria-label speaks
+// there). Flips below the trigger when the viewport would clip it above.
+export default component Tooltip(props: { label: string; children?: Child })
+{
+    state open = false;
+    state below = false;
+
+    let wrap: HTMLElement | null = null;
+
+    derived hoverable = typeof matchMedia !== 'undefined' && matchMedia('(hover: hover)').matches;
+
+    createEffect(() =>
+    {
+        if (!open || wrap === null)
+        {
+            return;
+        }
+        below = wrap.getBoundingClientRect().top < 44;
+    });
+
+    <span
+        class="relative inline-flex"
+        ref={ (element: HTMLElement) => { wrap = element; } }
+        onMouseenter={ () => { if (hoverable) { open = true; } } }
+        onMouseleave={ () => open = false }
+        onFocusin={ () => open = true }
+        onFocusout={ () => open = false }
+    >
+        { props.children }
+        <Show when={ open }>
+            <span
+                class={ below
+                    ? 'pointer-events-none absolute left-1/2 top-full z-[70] mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-[6px] border border-line bg-overlay px-2 py-1 text-[12px] font-semibold text-text shadow-lg motion-safe:animate-fade'
+                    : 'pointer-events-none absolute bottom-full left-1/2 z-[70] mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-[6px] border border-line bg-overlay px-2 py-1 text-[12px] font-semibold text-text shadow-lg motion-safe:animate-fade' }
+                role="tooltip"
+            >
+                { props.label }
+            </span>
+        </Show>
+    </span>
+}

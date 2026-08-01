@@ -1,0 +1,218 @@
+/*
+ * LEDGER - the AuctionHouse design system tokens.
+ *
+ * Dark is the BASE scale (the product's identity); light is a complete parallel scale
+ * activated by `data-theme="light"` on <html> - a first-class theme, never a derived tint.
+ * Every color, radius, and motion value the UI uses is named here and consumed through
+ * Tailwind's @theme mapping below; components never invent values.
+ */
+
+:root
+{
+    color-scheme: dark;
+
+    /* Surfaces: ink green-black ground, raised cards, overlay menus. Elevation is a
+       hairline border plus a tint step, not a heavy shadow. */
+    --surface: #0A0F0D;
+    --raised: #10171A;
+    --overlay: #16201F;
+    --line: #1E2B27;
+    --line-strong: #2A3B35;
+
+    /* The identity: emerald acts, gold distinguishes. */
+    --brand: #10B981;
+    --brand-press: #0EA271;
+    --brand-soft: rgb(16 185 129 / 12%);
+    --gold: #F5B94A;
+    --gold-soft: rgb(245 185 74 / 14%);
+
+    /* Semantics. YES/NO always travel with an icon or label - color never carries
+       meaning alone. */
+    --yes: #10B981;
+    --yes-soft: rgb(16 185 129 / 12%);
+    --no: #F4436C;
+    --no-soft: rgb(244 67 108 / 12%);
+    --warn: #F5B94A;
+
+    --text: #E8EFEA;
+    --muted: #8BA39A;
+    --faint: #5B6E66;
+    --on-brand: #06251B;
+    --on-gold: #2A1F08;
+
+    /* Charts: emerald primary series, gold secondary, rose for downside. */
+    --chart-1: #10B981;
+    --chart-2: #F5B94A;
+    --chart-3: #F4436C;
+    --chart-grid: rgb(139 163 154 / 14%);
+
+    --backdrop: rgb(4 8 6 / 62%);
+    --ring: rgb(16 185 129 / 55%);
+
+    /* Translucent sticky chrome (header, buy bar). Per-theme because the light theme must
+       be WHITE-based and more opaque - a gray-green 85% surface over white content lets
+       scrolled text ghost through the blur as a dirty smear. */
+    --chrome: rgb(10 15 13 / 85%);
+
+    /* Shape. */
+    --radius-control: 10px;
+    --radius-card: 14px;
+    --radius-sheet: 20px;
+
+    /* Motion. */
+    --motion-fast: 120ms;
+    --motion-base: 200ms;
+    --motion-slow: 320ms;
+    --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+    /* Chrome geometry. The tab bar and EVERYTHING that offsets against it (the sticky
+       trade bar, the footer clearance) read this one variable, so they cannot drift. */
+    --tabbar-h: 3.5rem;
+}
+
+:root[data-theme='light']
+{
+    color-scheme: light;
+
+    /* Unlike dark, light's elevation step goes DOWN from white: --overlay is the tint that
+       makes hover fills, active pills, emoji circles, and the skeleton shimmer visible on
+       raised white - if it equals --raised, every one of those disappears. */
+    --surface: #F7F9F8;
+    --raised: #FFFFFF;
+    --overlay: #ECF1EF;
+    --line: #E4EAE7;
+    --line-strong: #C3D0CA;
+
+    --brand: #0B9E6E;
+    --brand-press: #098A60;
+    --brand-soft: rgb(11 158 110 / 10%);
+    --gold: #C98A16;
+    --gold-soft: rgb(201 138 22 / 12%);
+
+    --yes: #0B9E6E;
+    --yes-soft: rgb(11 158 110 / 10%);
+    --no: #DB2757;
+    --no-soft: rgb(219 39 87 / 10%);
+    --warn: #C98A16;
+
+    --text: #10201B;
+    --muted: #5B6E66;
+    --faint: #7E958C;
+    --on-brand: #FFFFFF;
+    --on-gold: #FFFFFF;
+
+    --chart-1: #0B9E6E;
+    --chart-2: #C98A16;
+    --chart-3: #DB2757;
+    --chart-grid: rgb(16 32 27 / 10%);
+
+    --backdrop: rgb(16 32 27 / 40%);
+    --ring: rgb(11 158 110 / 45%);
+    --chrome: rgb(255 255 255 / 92%);
+}
+
+@theme inline
+{
+    --color-surface: var(--surface);
+    --color-raised: var(--raised);
+    --color-overlay: var(--overlay);
+    --color-line: var(--line);
+    --color-line-strong: var(--line-strong);
+    --color-brand: var(--brand);
+    --color-brand-press: var(--brand-press);
+    --color-brand-soft: var(--brand-soft);
+    --color-gold: var(--gold);
+    --color-gold-soft: var(--gold-soft);
+    --color-yes: var(--yes);
+    --color-yes-soft: var(--yes-soft);
+    --color-no: var(--no);
+    --color-no-soft: var(--no-soft);
+    --color-warn: var(--warn);
+    --color-text: var(--text);
+    --color-muted: var(--muted);
+    --color-faint: var(--faint);
+    --color-on-brand: var(--on-brand);
+    --color-on-gold: var(--on-gold);
+    --color-backdrop: var(--backdrop);
+    --color-chrome: var(--chrome);
+
+    --radius-control: var(--radius-control);
+    --radius-card: var(--radius-card);
+    --radius-sheet: var(--radius-sheet);
+
+    --font-sans: 'Inter Variable', 'Vazirmatn Tuned', ui-sans-serif, system-ui, sans-serif;
+    --font-fa: 'Vazirmatn Tuned', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+
+    --animate-rise: rise var(--motion-slow) var(--ease-out) both;
+    --animate-fade: fade var(--motion-base) var(--ease-out) both;
+    --animate-sheet-up: sheet-up var(--motion-slow) var(--ease-out) both;
+    --animate-shimmer: shimmer 1.6s linear infinite;
+    --animate-flash-up: flash-up 900ms var(--ease-out) both;
+    --animate-flash-down: flash-down 900ms var(--ease-out) both;
+    --animate-pop: pop var(--motion-base) var(--ease-out) both;
+
+    @keyframes rise
+    {
+        from
+        {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+    }
+
+    @keyframes fade
+    {
+        from
+        {
+            opacity: 0;
+        }
+    }
+
+    @keyframes pop
+    {
+        from
+        {
+            opacity: 0;
+            transform: scale(0.96);
+        }
+    }
+
+    /* Bottom sheets enter from below their own height - not the generic 8px rise. */
+    @keyframes sheet-up
+    {
+        from
+        {
+            transform: translateY(100%);
+        }
+    }
+
+    @keyframes shimmer
+    {
+        from
+        {
+            background-position: 200% 0;
+        }
+
+        to
+        {
+            background-position: -200% 0;
+        }
+    }
+
+    /* Price-change flashes: a soft wash that decays, used by the Ticker. */
+    @keyframes flash-up
+    {
+        from
+        {
+            background-color: var(--yes-soft);
+        }
+    }
+
+    @keyframes flash-down
+    {
+        from
+        {
+            background-color: var(--no-soft);
+        }
+    }
+}

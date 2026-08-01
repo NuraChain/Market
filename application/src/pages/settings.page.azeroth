@@ -1,0 +1,182 @@
+﻿import { useLocale } from '../stores/locale.store.ts';
+import { DEMO_ADDRESS } from '../lib/wallet.ts';
+
+import { useTheme } from '../stores/theme.store.ts';
+import { useSession } from '../stores/session.store.ts';
+import { useToasts } from '../stores/toasts.store.ts';
+
+import Icon from '../icons/icon.component.azeroth';
+import type { IconName } from '../icons/registry.ts';
+
+import Badge from '../components/ui/badge.component.azeroth';
+import Button from '../components/ui/button.component.azeroth';
+import Card from '../components/ui/card.component.azeroth';
+import Chip from '../components/ui/chip.component.azeroth';
+import Input from '../components/ui/input.component.azeroth';
+import Select from '../components/ui/select.component.azeroth';
+import SettingRow from '../components/ui/setting-row.component.azeroth';
+import Toggle from '../components/ui/toggle.component.azeroth';
+
+// Settings: desktop = sidebar sections, mobile = a horizontal section rail (the reference
+// pattern), never a shrunk sidebar. All controls are live UI state; persistence is later.
+export default component Settings()
+{
+    const { t, lang, setLang } = useLocale();
+    const appearance = useTheme();
+    const session = useSession();
+    const toasts = useToasts();
+
+    const saved = (): void => { toasts.push('success', t('toast.saved'), 'check'); };
+
+    const copyAddress = (): void =>
+    {
+        void navigator.clipboard?.writeText(DEMO_ADDRESS);
+        toasts.push('success', t('toast.linkCopied'), 'copy');
+    };
+
+    state section = 'profile';
+    state username = 'IntelligentQuantum';
+    state bio = '';
+    state oddsFormat: 'price' | 'percent' = 'price';
+    state confirmTrades = true;
+    state emailNews = true;
+    state pushResolve = true;
+
+    derived sections = [
+        { id: 'profile', label: t('settings.profile'), icon: 'user' as IconName },
+        { id: 'account', label: t('settings.account'), icon: 'settings' as IconName },
+        { id: 'trading', label: t('settings.trading'), icon: 'chart' as IconName },
+        { id: 'notifications', label: t('settings.notifications'), icon: 'bell' as IconName }
+    ];
+
+    <section class="shell py-5">
+        <div class="mx-auto max-w-5xl">
+            <h1 class="mb-5 text-2xl font-bold tracking-tight motion-safe:animate-rise">{ t('settings.title') }</h1>
+
+            <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-[14rem_minmax(0,1fr)]">
+                <nav class="rail rail-bleed rail-fade min-w-0 gap-2 lg:flex-col lg:gap-1" aria-label={ t('settings.title') }>
+                    <For each={ sections } key={ (entry) => entry.id }>
+                    { (entry) =>
+                        <button
+                            class={ section === entry.id
+                                ? 'flex h-11 shrink-0 cursor-pointer items-center gap-2.5 rounded-control bg-overlay px-3.5 text-[14px] font-bold text-text lg:w-full'
+                                : 'flex h-11 shrink-0 cursor-pointer items-center gap-2.5 rounded-control px-3.5 text-[14px] font-semibold text-muted transition-colors duration-200 hover:text-text lg:w-full' }
+                            type="button"
+                            onClick={ () => section = entry.id }
+                        >
+                            <Icon name={ entry.icon } size={ 17 } />
+                            <span>{ entry.label }</span>
+                        </button>
+                    }
+                    </For>
+                </nav>
+
+                <div class="min-w-0">
+                    <Show when={ section === 'profile' }>
+                        <div class="grid grid-cols-1 gap-4 motion-safe:animate-fade">
+                            <Card class="flex items-center gap-4">
+                                <span class="flex h-14 w-14 items-center justify-center rounded-full bg-brand-soft text-xl font-bold text-brand" aria-hidden="true">I</span>
+                                <div class="min-w-0">
+                                    <p class="flex items-center gap-2 font-bold">
+                                    { username }
+                                        <Badge tone="brand" icon="verified">{ t('settings.verified') }</Badge>
+                                    </p>
+                                    <p class="truncate text-[13px] text-muted">intelligentquantum@example.org</p>
+                                </div>
+                            </Card>
+                            <Card>
+                                <label class="mb-1.5 block text-[13px] font-semibold text-muted" for="settings-username">{ t('settings.username') }</label>
+                                <Input label={ t('settings.username') } value={ username } onInput={ (next) => username = next } />
+                                <label class="mb-1.5 mt-4 block text-[13px] font-semibold text-muted" for="settings-bio">{ t('settings.bio') }</label>
+                                <textarea
+                                    id="settings-bio"
+                                    class="min-h-24 w-full rounded-control border border-line bg-raised p-3.5 text-[15px] text-text placeholder:text-faint transition-colors duration-200 focus:border-brand focus:outline-none"
+                                    placeholder={ t('settings.bioPlaceholder') }
+                                    maxlength="200"
+                                    onInput={ (event) => bio = (event.target as HTMLTextAreaElement).value }
+                            ></textarea>
+                                <p class="nums mt-1 text-end text-[12px] text-faint">{ bio.length }/200</p>
+                            </Card>
+                        </div>
+                    </Show>
+
+                    <Show when={ section === 'account' }>
+                        <div class="grid grid-cols-1 gap-4 motion-safe:animate-fade">
+                            <Card>
+                                <SettingRow label={ t('settings.emailLabel') } hint="intelligentquantum@example.org">
+                                    <span class="shrink-0"><Badge tone="brand" icon="verified">{ t('settings.verified') }</Badge></span>
+                                </SettingRow>
+                                <SettingRow divided wrap label={ t('nav.language') }>
+                                    <div class="flex gap-2">
+                                        <Chip compact selected={ lang() === 'en' } onSelect={ () => { setLang('en'); saved(); } }>English</Chip>
+                                        <Chip compact selected={ lang() === 'fa' } onSelect={ () => { setLang('fa'); saved(); } }>فارسی</Chip>
+                                    </div>
+                                </SettingRow>
+                                <SettingRow divided wrap label={ t('nav.theme') }>
+                                    <div class="flex gap-2">
+                                        <Chip compact icon="moon" selected={ appearance.theme() === 'dark' } onSelect={ () => { appearance.setTheme('dark'); saved(); } }>{ t('nav.themeDark') }</Chip>
+                                        <Chip compact icon="sun" selected={ appearance.theme() === 'light' } onSelect={ () => { appearance.setTheme('light'); saved(); } }>{ t('nav.themeLight') }</Chip>
+                                    </div>
+                                </SettingRow>
+                                <Show when={ session.connected() }>
+                                    <div class="mt-4 border-t border-line pt-4">
+                                        <div class="flex items-center justify-between gap-3">
+                                            <div class="min-w-0">
+                                                <p class="text-[14px] font-bold">{ t('profile.address') }</p>
+                                                <p class="nums latin-nums truncate text-[12px] text-faint" dir="ltr">{ DEMO_ADDRESS }</p>
+                                            </div>
+                                            <button
+                                                class="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-control border border-line px-3 text-[13px] font-semibold text-muted transition-colors duration-200 hover:text-text"
+                                                type="button"
+                                                onClick={ () => copyAddress() }
+                                            >
+                                                <Icon name="copy" size={ 14 } />
+                                                { t('common.copy') }
+                                            </button>
+                                        </div>
+                                        <p class="mt-1.5 text-[12px] text-faint">{ t('profile.addressHint') }</p>
+                                    </div>
+                                </Show>
+                            </Card>
+                            <Card tone="danger">
+                                <p class="mb-1 flex items-center gap-2 text-[14px] font-bold text-no"><Icon name="alert" size={ 16 } />{ t('settings.dangerZone') }</p>
+                                <p class="mb-3 text-[13px] text-muted">{ t('settings.deleteHint') }</p>
+                                <Button variant="danger" size="sm" icon="trash" onClick={ () => toasts.push('info', t('toast.uiOnly'), 'alert') }>{ t('settings.deleteAccount') }</Button>
+                            </Card>
+                        </div>
+                    </Show>
+
+                    <Show when={ section === 'trading' }>
+                        <Card animate="fade">
+                            <SettingRow label={ t('settings.oddsFormat') }>
+                                <Select
+                                    options={ [
+                                        { id: 'price', label: t('settings.oddsPrice') },
+                                        { id: 'percent', label: t('settings.oddsPercent') }
+                                    ] }
+                                    value={ oddsFormat }
+                                    onChange={ (next) => { oddsFormat = next as 'price' | 'percent'; saved(); } }
+                                    label={ t('settings.oddsFormat') }
+                                />
+                            </SettingRow>
+                            <SettingRow divided label={ t('settings.confirmTrades') } hint={ t('settings.confirmTradesHint') }>
+                                <Toggle checked={ confirmTrades } label={ t('settings.confirmTrades') } onChange={ (next) => { confirmTrades = next; saved(); } } />
+                            </SettingRow>
+                        </Card>
+                    </Show>
+
+                    <Show when={ section === 'notifications' }>
+                        <Card animate="fade">
+                            <SettingRow label={ t('settings.emailNews') }>
+                                <Toggle checked={ emailNews } label={ t('settings.emailNews') } onChange={ (next) => { emailNews = next; saved(); } } />
+                            </SettingRow>
+                            <SettingRow divided label={ t('settings.pushResolve') }>
+                                <Toggle checked={ pushResolve } label={ t('settings.pushResolve') } onChange={ (next) => { pushResolve = next; saved(); } } />
+                            </SettingRow>
+                        </Card>
+                    </Show>
+                </div>
+            </div>
+        </div>
+    </section>
+}

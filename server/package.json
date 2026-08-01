@@ -1,0 +1,36 @@
+{
+    "name": "auctionhouse-server",
+    "private": true,
+    "version": "0.0.0",
+    "type": "module",
+    "engines": {
+        "node": ">=24"
+    },
+    "scripts": {
+        "dev": "azeroth dev",
+        "check": "azeroth check",
+        "test": "vitest run",
+        "start": "node src/main.ts"
+    },
+    "dependencies": {
+        "@azerothjs/http": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/http",
+        "@azerothjs/kit": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/kit",
+        "@azerothjs/logger": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/logger",
+        "@azerothjs/schema": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/schema",
+        "azerothjs": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/azerothjs"
+    },
+    "devDependencies": {
+        "@azerothjs/cli": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/cli",
+        "@azerothjs/devtools": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/devtools",
+        "@azerothjs/eslint-plugin": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/eslint-plugin",
+        "@azerothjs/ws": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/ws",
+        "@eslint/js": "^10.0.1",
+        "@types/node": "^26.1.0",
+        "eslint": "^10.7.0",
+        "globals": "^17.7.0",
+        "jiti": "^2.7.0",
+        "typescript": "^6.0.3",
+        "typescript-eslint": "^8.64.0",
+        "vitest": "^4.1.9"
+    }
+}
