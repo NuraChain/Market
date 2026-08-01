@@ -15,7 +15,7 @@ export const en = {
         menu: 'Menu',
         settings: 'Settings',
         search: 'Search markets',
-        signIn: 'Sign in',
+        connect: 'Connect',
         signOut: 'Sign out',
         deposit: 'Deposit',
         notifications: 'Notifications',
@@ -103,6 +103,8 @@ export const en = {
         title: 'Connect a wallet',
         subtitle: 'Your wallet is your account - one connection, every market.',
         connecting: 'Connecting',
+        notDetected: 'is not installed - add the browser extension first',
+        rejected: 'Connection request was declined',
         terms: 'By continuing you agree to the Terms and the Privacy Policy.'
     },
     profile: {

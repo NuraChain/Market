@@ -1,5 +1,4 @@
 ﻿import { useLocale } from '../stores/locale.store.ts';
-import { DEMO_ADDRESS } from '../lib/wallet.ts';
 
 import { useTheme } from '../stores/theme.store.ts';
 import { useSession } from '../stores/session.store.ts';
@@ -30,7 +29,7 @@ export default component Settings()
 
     const copyAddress = (): void =>
     {
-        void navigator.clipboard?.writeText(DEMO_ADDRESS);
+        void navigator.clipboard?.writeText(session.address());
         toasts.push('success', t('toast.linkCopied'), 'copy');
     };
 
@@ -123,7 +122,7 @@ export default component Settings()
                                         <div class="flex items-center justify-between gap-3">
                                             <div class="min-w-0">
                                                 <p class="text-[14px] font-bold">{ t('profile.address') }</p>
-                                                <p class="nums latin-nums truncate text-[12px] text-faint" dir="ltr">{ DEMO_ADDRESS }</p>
+                                                <p class="nums latin-nums truncate text-[12px] text-faint" dir="ltr">{ session.address() }</p>
                                             </div>
                                             <button
                                                 class="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-control border border-line px-3 text-[13px] font-semibold text-muted transition-colors duration-200 hover:text-text"

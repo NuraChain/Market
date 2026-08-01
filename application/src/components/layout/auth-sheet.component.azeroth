@@ -1,6 +1,6 @@
 import { useLocale } from '../../stores/locale.store.ts';
 import { useChrome } from '../../stores/chrome.store.ts';
-import { useSession } from '../../stores/session.store.ts';
+import { useSession, WalletUnavailableError } from '../../stores/session.store.ts';
 import { useToasts } from '../../stores/toasts.store.ts';
 
 import { WALLET_LABEL, type WalletBrand } from '../../icons/brands.ts';
@@ -11,7 +11,8 @@ import Sheet from '../ui/sheet.component.azeroth';
 
 // Wallet-ONLY auth: the wallet IS the account system on a web3 market. Still ONE surface,
 // ever - the anti-pattern this replaces is a QR overlay stacked on a dialog stacked on a
-// modal. Selecting a wallet stages a simulated handshake (UI phase).
+// modal. Picking a wallet asks its REAL injected provider for accounts; a missing
+// extension and a declined request each answer with an honest toast.
 export default component AuthSheet()
 {
     const { t } = useLocale();
@@ -27,9 +28,23 @@ export default component AuthSheet()
         {
             return;
         }
-        await session.connect(brand);
-        chrome.close();
-        toasts.push('success', t('toast.connected'), 'wallet');
+        try
+        {
+            await session.connect(brand);
+            chrome.close();
+            toasts.push('success', t('toast.connected'), 'wallet');
+        }
+        catch (error)
+        {
+            if (error instanceof WalletUnavailableError)
+            {
+                toasts.push('error', `${ WALLET_LABEL[brand] } ${ t('auth.notDetected') }`, 'alert');
+            }
+            else
+            {
+                toasts.push('info', t('auth.rejected'), 'info');
+            }
+        }
     };
 
     <Sheet open={ chrome.authOpen() } title={ t('auth.title') } onClose={ () => chrome.close() }>

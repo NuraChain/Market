@@ -16,7 +16,7 @@ export const fa: Dictionary = {
         menu: 'منو',
         settings: 'تنظیمات',
         search: 'جستجوی بازارها',
-        signIn: 'ورود',
+        connect: 'اتصال',
         signOut: 'خروج',
         deposit: 'واریز',
         notifications: 'اعلان‌ها',
@@ -104,6 +104,8 @@ export const fa: Dictionary = {
         title: 'اتصال کیف پول',
         subtitle: 'کیف پول تو حساب توست - یک اتصال، همه بازارها.',
         connecting: 'در حال اتصال',
+        notDetected: 'نصب نیست - اول افزونه مرورگرش را نصب کن',
+        rejected: 'درخواست اتصال رد شد',
         terms: 'با ادامه، شرایط استفاده و حریم خصوصی را می‌پذیری.'
     },
     profile: {

@@ -103,7 +103,7 @@ export default component Header()
                     when={ session.connected() }
                     fallback={
                         <span class="ms-1">
-                            <Button size="sm" onClick={ () => chrome.openAuth() }>{ t('nav.signIn') }</Button>
+                            <Button size="sm" onClick={ () => chrome.openAuth() }>{ t('nav.connect') }</Button>
                         </span>
                     }
                 >
