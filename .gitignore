@@ -3,9 +3,21 @@ dist/
 dist-server/
 .azeroth/
 logs/
+coverage/
+*.tsbuildinfo
 .env
 *.local
+.DS_Store
+Thumbs.db
 .idea
+.vscode
+
+# The sqlite chain index (derived; the indexer replays it from the chain).
+server/.data/
 
 # Uploaded market/category art (content-addressed; not source).
 server/uploads/
+
+# Hardhat compile output (the ABIs the app uses are exported to application/src/lib/abis).
+contracts/artifacts/
+contracts/cache/
