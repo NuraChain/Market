@@ -13,18 +13,18 @@
         "start": "node src/main.ts"
     },
     "dependencies": {
-        "@azerothjs/http": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/http",
-        "@azerothjs/kit": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/kit",
-        "@azerothjs/logger": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/logger",
-        "@azerothjs/schema": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/schema",
-        "azerothjs": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/azerothjs",
+        "@azerothjs/http": "2.0.0-beta.1",
+        "@azerothjs/kit": "2.0.0-beta.1",
+        "@azerothjs/logger": "2.0.0-beta.1",
+        "@azerothjs/schema": "2.0.0-beta.1",
+        "azerothjs": "2.0.0-beta.1",
         "viem": "^2.55.10"
     },
     "devDependencies": {
-        "@azerothjs/cli": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/cli",
-        "@azerothjs/devtools": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/devtools",
-        "@azerothjs/eslint-plugin": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/eslint-plugin",
-        "@azerothjs/ws": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/ws",
+        "@azerothjs/cli": "2.0.0-beta.1",
+        "@azerothjs/devtools": "2.0.0-beta.1",
+        "@azerothjs/eslint-plugin": "2.0.0-beta.1",
+        "@azerothjs/ws": "2.0.0-beta.1",
         "@eslint/js": "^10.0.1",
         "@types/node": "^26.1.0",
         "eslint": "^10.7.0",
