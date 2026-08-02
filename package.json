@@ -15,7 +15,13 @@
         "check": "azeroth check",
         "build": "azeroth build",
         "test": "azeroth test",
-        "start": "npm start --workspace server"
+        "start": "npm start --workspace server",
+        "chain": "npm --prefix contracts run node",
+        "seed": "npm --prefix contracts run seed",
+        "contracts:compile": "npm --prefix contracts run compile",
+        "contracts:test": "npm --prefix contracts run test",
+        "contracts:deploy:local": "npm --prefix contracts run deploy:local",
+        "contracts:abis": "npm --prefix contracts run export-abis"
     },
     "devDependencies": {
         "@azerothjs/cli": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/cli"

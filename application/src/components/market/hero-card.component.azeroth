@@ -4,8 +4,9 @@ import { client, type Market } from '../../api.ts';
 import { isBinary } from '../../lib/market.ts';
 
 import { useLocale } from '../../stores/locale.store.ts';
+import { usePreferences } from '../../stores/preferences.store.ts';
 
-import { formatPercent, formatVolume, formatDateTimeShort } from '../../i18n/format.ts';
+import { formatOdds, formatVolume, formatDateTimeShort } from '../../i18n/format.ts';
 
 import Icon from '../../icons/icon.component.azeroth';
 
@@ -15,6 +16,7 @@ import Skeleton from '../ui/skeleton.component.azeroth';
 import { cardClass } from '../ui/variants.ts';
 import FavoriteButton from './favorite-button.component.azeroth';
 import OutcomePair from './outcome-pair.component.azeroth';
+import MarketAvatar from './market-avatar.component.azeroth';
 
 // The featured rail's wide card: headline chance, a live week chart, and the outcome
 // buttons - the storefront window. Series load lazily per card, anchored to the shown
@@ -22,6 +24,7 @@ import OutcomePair from './outcome-pair.component.azeroth';
 export default component HeroCard(props: { market: Market })
 {
     const { t, lang, text } = useLocale();
+    const { oddsMode } = usePreferences();
 
     derived lead = props.market.outcomes.reduce((best, candidate) => (candidate.price > best.price ? candidate : best), props.market.outcomes[0]!);
     derived detailPath = `/market/${ props.market.id }`;
@@ -33,7 +36,7 @@ export default component HeroCard(props: { market: Market })
 
     <article class={ `${ cardClass({ interactive: true }) } flex h-full flex-col` }>
         <div class="mb-2 flex items-start gap-3">
-            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-overlay text-xl" aria-hidden="true">{ props.market.emoji }</span>
+            <MarketAvatar image={ props.market.image } emoji={ props.market.emoji } size="md" />
             <Link to={ detailPath } class="min-h-[2.75em] min-w-0 flex-1 text-[15px] font-bold leading-snug text-text no-underline line-clamp-2 hover:text-brand">
                 { text(props.market.title) }
             </Link>
@@ -42,7 +45,7 @@ export default component HeroCard(props: { market: Market })
 
         <div class="mb-1 flex items-end justify-between">
             <div>
-                <p class="nums text-2xl font-bold text-brand">{ formatPercent(lead.price, lang()) }</p>
+                <p class="nums text-2xl font-bold text-brand">{ formatOdds(lead.price, lang(), oddsMode()) }</p>
                 <p class="text-[12px] text-muted">
                     { isBinary(props.market) ? t('market.chance') : text(lead.label) }
                 </p>

@@ -36,10 +36,13 @@ function scale(points: SeriesPoint[]): Array<{ x: number; y: number }>
         min = Math.min(min, point.p);
         max = Math.max(max, point.p);
     }
+    // A perfectly flat series (a market nobody traded yet) centers instead of collapsing to
+    // the bottom edge - a floor-hugging line reads as a rendering fault, not as "no movement".
+    const flat = max - min === 0;
     const span = max - min || 1;
     return points.map((point, index) => ({
         x: (index / Math.max(1, points.length - 1)) * VIEW_W,
-        y: VIEW_H - PAD_Y - ((point.p - min) / span) * (VIEW_H - 2 * PAD_Y)
+        y: flat ? VIEW_H / 2 : VIEW_H - PAD_Y - ((point.p - min) / span) * (VIEW_H - 2 * PAD_Y)
     }));
 }
 

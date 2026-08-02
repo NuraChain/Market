@@ -40,24 +40,45 @@ describe('session store', () =>
 
             const request = vi.fn(async ({ method }: { method: string }) =>
                 (method === 'eth_requestAccounts' ? [ADDRESS] : []));
-            window.dispatchEvent(new CustomEvent('eip6963:announceProvider', {
-                detail: { info: { rdns: 'io.metamask' }, provider: { request, on: vi.fn() } }
-            }));
+            const announce = (info: { rdns: string; name: string; icon: string }): void =>
+            {
+                window.dispatchEvent(new CustomEvent('eip6963:announceProvider', {
+                    detail: { info, provider: { request, on: vi.fn() } }
+                }));
+            };
+            announce({ rdns: 'io.metamask', name: 'MetaMask', icon: 'data:image/svg+xml;base64,AA' });
+            // A wallet we ship no vector for is admitted all the same - a fixed brand list is
+            // what told someone with Frame or Zerion installed that they had no wallet.
+            announce({ rdns: 'sh.frame', name: 'Frame', icon: 'data:image/svg+xml;base64,BB' });
 
-            await session.connect('metamask');
+            expect(session.wallets().map((entry) => entry.rdns)).toEqual(['io.metamask', 'sh.frame']);
+            expect(session.wallets().find((entry) => entry.rdns === 'sh.frame')?.brand).toBeNull();
+            expect(session.wallets().find((entry) => entry.rdns === 'io.metamask')?.brand).toBe('metamask');
+
+            expect(session.provider()).toBeNull();
+
+            await session.connect('io.metamask');
             expect(request).toHaveBeenCalledWith({ method: 'eth_requestAccounts' });
             expect(session.connected()).toBe(true);
-            expect(session.wallet()).toBe('metamask');
+            expect(session.wallet()).toBe('MetaMask');
             expect(session.address()).toBe(ADDRESS);
+
+            // The contract layer transacts through this provider; it must be the announced one.
+            expect(session.provider()?.request).toBe(request);
 
             session.disconnect();
             expect(session.connected()).toBe(false);
             expect(session.address()).toBe('');
+            expect(session.provider()).toBeNull();
+
+            await session.connect('sh.frame');
+            expect(session.wallet()).toBe('Frame');
+            session.disconnect();
         });
         vi.unstubAllGlobals();
     });
 
-    it('a brand with no injected provider fails loudly, never silently pretends', async () =>
+    it('a wallet with no injected provider fails loudly, never silently pretends', async () =>
     {
         const { useSession, WalletUnavailableError } = await import('../src/stores/session.store.ts');
         const { createRoot } = await import('azerothjs');
@@ -65,7 +86,7 @@ describe('session store', () =>
         await createRoot(async () =>
         {
             const session = useSession();
-            await expect(session.connect('walletconnect')).rejects.toBeInstanceOf(WalletUnavailableError);
+            await expect(session.connect('com.example.absent')).rejects.toBeInstanceOf(WalletUnavailableError);
             expect(session.connected()).toBe(false);
         });
     });

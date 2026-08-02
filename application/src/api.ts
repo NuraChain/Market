@@ -1,17 +1,34 @@
 // The one file that crosses into the server half - and it crosses with TYPES only. The value
-// imports below are client-safe (schemas.ts imports nothing but the schema package); `typeof
-// api` is erased at build, so no handler, store, or server dependency can reach the browser
+// imports below are client-safe (schemas.ts imports nothing but the schema package); `Api`
+// is erased at build, so no handler, store, or server dependency can reach the browser
 // bundle. The client's runtime half is the served manifest: method + path per route, projected
 // from the SAME declaration the server registered, fetched once at boot. '/api' matches the
 // dev proxy and the production mount.
 import { createClient, type Manifest } from '@azerothjs/http/api/shared';
 
-import type { api } from '../../server/src/app.ts';
+import type { Api } from '../../server/src/app.ts';
 
-export { CATEGORIES, RANGES, PERIODS, SIDES } from '../../server/src/schemas.ts';
+export
+{
+    KNOWN_CATEGORIES,
+    MARKET_STATUSES,
+    RANGES,
+    PERIODS,
+    SIDES,
+    encodeTitleMeta,
+    encodeTextMeta,
+    decodeTitleMeta,
+    decodeOutcomeMeta,
+    decodeTextMeta,
+    featureMessage,
+    categoryMessage,
+    uploadMessage
+} from '../../server/src/schemas.ts';
 export type {
-    ActivityItem, Category, Comment, Holder, LeaderboardRow, Localized, Market,
-    Outcome, Period, PortfolioSummary, Position, ProfitSeries, Range, Series, SeriesPoint, Side
+    ActivityItem, ActivityPage, AdminMarketPage, AdminMarketRow, AdminStats, CategoryCount, ChainConfig,
+    Holder, KnownCategory, LeaderboardRow, Localized, Market, MarketPage, MarketSort,
+    MarketStatusName, Outcome, Period, PortfolioSummary, Position, ProfitSeries, Range,
+    Series, SeriesPoint, Side, TitleMeta
 } from '../../server/src/schemas.ts';
 
 // During SSR the module loads with an empty manifest: pages fetch data in `mount { }`, which
@@ -25,4 +42,4 @@ const manifest: Manifest = typeof document === 'undefined'
         .then((response) => response.json() as Promise<Manifest>)
         .catch(() => ({}));
 
-export const client = createClient<typeof api>(manifest, { baseUrl: '/api' });
+export const client = createClient<Api>(manifest, { baseUrl: '/api' });

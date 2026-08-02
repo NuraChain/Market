@@ -1,11 +1,13 @@
-﻿import { Link } from 'azerothjs';
+import { Link } from 'azerothjs';
 import type { Market } from '../../api.ts';
 
 import { isBinary, leadPrice } from '../../lib/market.ts';
 
 import { useLocale } from '../../stores/locale.store.ts';
+import { usePreferences } from '../../stores/preferences.store.ts';
+import { useCategories } from '../../stores/categories.store.ts';
 
-import { formatPercent, formatVolume, formatDateTimeShort } from '../../i18n/format.ts';
+import { formatOdds, formatOddsSet, formatVolume, formatDateTimeShort } from '../../i18n/format.ts';
 
 import Icon from '../../icons/icon.component.azeroth';
 
@@ -14,22 +16,44 @@ import Tooltip from '../ui/tooltip.component.azeroth';
 import { cardClass } from '../ui/variants.ts';
 import FavoriteButton from './favorite-button.component.azeroth';
 import OutcomePair from './outcome-pair.component.azeroth';
+import OutcomeRow from './outcome-row.component.azeroth';
+import MarketAvatar from './market-avatar.component.azeroth';
 
-// The market card - the product's atom. Fixes the reference site's defects by contract:
-// full-height outcome buttons with price on them, resolve date + volume always visible,
-// YES/NO always icon + label, one dual price convention. The meta row holds EXACTLY two
-// items (volume, timer chip) so it can never wrap; trending/featured are icon marks on the
-// title row, not row-crowding text badges. The title reserves two lines so card tops align.
+// The market card - the product's atom. THREE shapes, chosen by the market's own shape:
+//   binary        one collapsed Yes/No leg -> chance ring + a full-width Yes/No pair
+//   head-to-head  exactly two named sides  -> a row per side, then two buttons NAMED for them
+//   list          three or more candidates -> a row per candidate with its own Yes/No
+// Fixes the reference site's defects by contract: price on every button, resolve date and
+// volume always visible, one odds convention. The meta row holds at most three items so it
+// can never wrap; trending/featured are icon marks, not row-crowding badges.
 export default component MarketCard(props: { market: Market })
 {
     const { t, lang, text } = useLocale();
+    const { oddsMode } = usePreferences();
+    const categories = useCategories();
 
     derived detailPath = `/market/${ props.market.id }`;
-    derived topOutcomes = props.market.outcomes.slice(0, 3);
+
+    // Apportioned across the WHOLE outcome set, then read per row - rounding each candidate
+    // on its own prints a set that does not add up to 100.
+    derived outcomeOdds = formatOddsSet(props.market.outcomes.map((entry) => entry.price), lang(), oddsMode());
+
+    derived binary = isBinary(props.market);
+    derived duel = !binary && props.market.outcomes.length === 2;
+    derived rows = duel ? props.market.outcomes : props.market.outcomes.slice(0, 3);
+
+    const rowPath = (outcomeId: string): string => `${ detailPath }?outcome=${ encodeURIComponent(outcomeId) }`;
+
+    // The two sides of a head-to-head read as competitors, not as yes/no: tinting one green
+    // and the other red would claim one of them is the "no" answer, which is not the market.
+    const SIDE = [
+        'flex h-11 flex-1 items-center justify-center gap-1.5 rounded-control bg-brand-soft px-2 text-[14px] font-bold text-brand no-underline transition duration-200 hover-tint active:scale-[0.98]',
+        'flex h-11 flex-1 items-center justify-center gap-1.5 rounded-control bg-gold-soft px-2 text-[14px] font-bold text-gold no-underline transition duration-200 hover-tint active:scale-[0.98]'
+    ];
 
     <article class={ `${ cardClass({ interactive: true, animate: 'rise' }) } group flex h-full flex-col hover:shadow-lg` }>
         <div class="mb-3 flex items-start gap-3">
-            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-overlay text-xl" aria-hidden="true">{ props.market.emoji }</span>
+            <MarketAvatar image={ props.market.image } emoji={ props.market.emoji } size="md" />
             <Link to={ detailPath } class="min-h-[2.75em] min-w-0 flex-1 text-[15px] font-bold leading-snug text-text no-underline transition-colors duration-200 line-clamp-2 group-hover:text-brand">
                 { text(props.market.title) }
             </Link>
@@ -49,38 +73,75 @@ export default component MarketCard(props: { market: Market })
                         </span>
                     </Tooltip>
                 </Show>
-                <Show when={ isBinary(props.market) }>
+                <Show when={ binary }>
                     <span class="relative ms-1 flex h-11 w-11 items-center justify-center">
                         <span class="absolute inset-0"><ChanceRing share={ leadPrice(props.market) } size={ 44 } /></span>
-                        <span class="nums relative text-[11px] font-bold text-brand">{ formatPercent(leadPrice(props.market), lang()) }</span>
+                        <span class="nums relative text-[11px] font-bold text-brand">{ formatOdds(leadPrice(props.market), lang(), oddsMode()) }</span>
                     </span>
                 </Show>
             </span>
         </div>
 
-        <Show
-            when={ isBinary(props.market) }
-            fallback={
-                <div class="mb-3 flex flex-col gap-1.5">
-                    <For each={ topOutcomes } key={ (outcome) => outcome.id }>
-                        { (outcome) =>
-                            <Link to={ detailPath } class="flex h-9 items-center gap-2 rounded-control bg-overlay px-3 text-[13px] font-semibold text-text no-underline transition duration-200 hover:bg-brand-soft">
-                                <span class="min-w-0 flex-1 truncate">{ text(outcome.label) }</span>
-                                <span class="nums text-brand">{ formatPercent(outcome.price, lang()) }</span>
-                            </Link>
-                        }
-                    </For>
-                    <Show when={ props.market.outcomes.length > 3 }>
-                        <Link to={ detailPath } class="px-3 text-[12px] font-semibold text-faint no-underline hover:text-muted">{ t('common.seeMore') }</Link>
-                    </Show>
-                </div>
-            }
-        >
+        <Show when={ binary }>
             <OutcomePair yesPrice={ leadPrice(props.market) } to={ detailPath } class="mb-3" />
         </Show>
 
-        <div class="mt-auto flex items-center justify-between gap-3 text-[12px] text-faint">
-            <span class="nums flex items-center gap-1"><Icon name="volume" size={ 13 } />{ formatVolume(props.market.volume, lang()) }</span>
+        <Show when={ duel }>
+            <div class="mb-3 flex flex-col gap-2">
+                <For each={ rows } key={ (outcome) => outcome.id }>
+                { (outcome, index) =>
+                    <div class="flex items-center gap-2">
+                        <Show
+                            when={ outcome.icon !== '' }
+                            fallback={ <span class="h-6 w-6 shrink-0 rounded-full bg-overlay"></span> }
+                        >
+                            <span class="h-6 w-6 shrink-0 overflow-hidden rounded-full bg-overlay">
+                                <img class="h-full w-full object-cover" src={ outcome.icon } alt="" loading="lazy" />
+                            </span>
+                        </Show>
+                        <span class="min-w-0 flex-1 truncate text-[13px] font-semibold">{ text(outcome.label) }</span>
+                        <span class="nums shrink-0 text-[13px] font-bold">{ outcomeOdds[index] ?? '-' }</span>
+                    </div>
+                }
+                </For>
+                <div class="flex gap-2.5">
+                    <For each={ rows } key={ (outcome) => outcome.id }>
+                    { (outcome, index) =>
+                        <Link to={ `${ rowPath(outcome.id) }&side=yes` } class={ SIDE[index] ?? SIDE[0]! }>
+                            <span class="truncate">{ text(outcome.label) }</span>
+                        </Link>
+                    }
+                    </For>
+                </div>
+            </div>
+        </Show>
+
+        <Show when={ !binary && !duel }>
+            <div class="mb-3 flex flex-col gap-2">
+                <For each={ rows } key={ (outcome) => outcome.id }>
+                { (outcome, index) =>
+                    <OutcomeRow
+                        label={ text(outcome.label) }
+                        icon={ outcome.icon }
+                        odds={ outcomeOdds[index] ?? '' }
+                        to={ rowPath(outcome.id) }
+                        outcomeId={ outcome.id }
+                    />
+                }
+                </For>
+                <Show when={ props.market.outcomes.length > 3 }>
+                    <Link to={ detailPath } class="text-[12px] font-semibold text-faint no-underline hover:text-muted">{ t('common.seeMore') }</Link>
+                </Show>
+            </div>
+        </Show>
+
+        <div class="mt-auto flex items-center justify-between gap-2 text-[12px] text-faint">
+            <span class="nums flex min-w-0 items-center gap-1.5 truncate">
+                <Icon name="volume" size={ 13 } />
+                <span>{ formatVolume(props.market.volume, lang()) }</span>
+                <span aria-hidden="true">·</span>
+                <span class="truncate">{ categories.label(props.market.category) }</span>
+            </span>
             <span class="nums flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-line px-2 py-0.5">
                 <Icon name="clock" size={ 12 } />
                 { formatDateTimeShort(props.market.endsAt, lang()) }

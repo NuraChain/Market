@@ -23,7 +23,7 @@ export default component Ticker(props: { text: string; value?: number; class?: s
         previous = next;
     });
 
-    <span class={ `nums inline-block rounded px-0.5 ${ props.class ?? '' }` } ref={ (element: HTMLElement) => { span = element; } }>
+    <span class={ `nums inline-block rounded px-0.5 ${ props.class ?? '' }` } ref={ (element) => { span = element; } }>
         { props.text }
     </span>
 }

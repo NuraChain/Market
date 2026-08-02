@@ -68,6 +68,17 @@
     /* Chrome geometry. The tab bar and EVERYTHING that offsets against it (the sticky
        trade bar, the footer clearance) read this one variable, so they cannot drift. */
     --tabbar-h: 3.5rem;
+
+    /* The layer ladder, in one place so it can be reasoned about as a whole. A raw z-index
+       only orders siblings INSIDE a stacking context, so a layer that must beat the page
+       has to escape to the body first (see Tooltip's Portal) - these numbers order the
+       body-level layers against each other, they do not rescue a nested one. */
+    --z-buybar: 30;
+    --z-header: 40;
+    --z-menu: 50;
+    --z-sheet: 50;
+    --z-toast: 60;
+    --z-tooltip: 70;
 }
 
 :root[data-theme='light']

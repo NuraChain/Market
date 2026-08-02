@@ -1,10 +1,6 @@
-import type { Category, Market } from '../api.ts';
-
-import { matchesQuery } from '../lib/market.ts';
-import { pageOf } from '../lib/paged.ts';
+import { client, type MarketSort } from '../api.ts';
 
 import { useLocale } from '../stores/locale.store.ts';
-import { useMarkets } from '../stores/markets.store.ts';
 import { useFavorites } from '../stores/favorites.store.ts';
 
 import Icon from '../icons/icon.component.azeroth';
@@ -24,20 +20,51 @@ import { MARKET_GRID } from '../components/ui/variants.ts';
 
 const PAGE_SIZE = 12;
 
+// Search, filter, sort, and pagination all run SERVER-SIDE against the indexer - the page
+// only holds the controls. The search box debounces 300ms so typing costs one query, not
+// one per keystroke; the watchlist chip narrows the server query to the locally saved ids.
 export default component Browse()
 {
     const { t } = useLocale();
-    const markets = useMarkets();
     const favorites = useFavorites();
 
     state query = '';
-    state category: Category | 'all' = 'all';
-    state sort = 'volume';
+    state search = '';
+    state category = 'all';
+    state sort: MarketSort = 'volume';
     state watchOnly = false;
-    state hideSports = false;
-    state hideCrypto = false;
     state page = 1;
     state filtersOpen = false;
+
+    let searchTimer: ReturnType<typeof setTimeout> | null = null;
+    const onQuery = (next: string): void =>
+    {
+        query = next;
+        if (searchTimer !== null)
+        {
+            clearTimeout(searchTimer);
+        }
+        searchTimer = setTimeout(() =>
+        {
+            search = next;
+            page = 1;
+        }, 300);
+    };
+
+    derived watchIds = watchOnly ? [...favorites.ids()].join(',') : '';
+
+    resource markets = (key: string) =>
+    {
+        void key;
+        return client.markets.list({ query: {
+            ...(search.trim() === '' ? {} : { search: search.trim() }),
+            ...(category === 'all' ? {} : { category }),
+            ...(watchOnly ? { ids: watchIds === '' ? '-1' : watchIds } : {}),
+            sort,
+            page,
+            limit: PAGE_SIZE
+        } });
+    } with { source: `${ search }|${ category }|${ sort }|${ watchOnly ? watchIds : '-' }|${ page }` };
 
     derived sortOptions = [
         { id: 'volume', label: t('browse.sortVolume'), icon: 'volume' as const },
@@ -45,35 +72,12 @@ export default component Browse()
         { id: 'ending', label: t('browse.sortEnding'), icon: 'clock' as const }
     ];
 
-    derived filtered = (markets.data() ?? [])
-        .filter((market: Market) =>
-            (category === 'all' || market.category === category)
-            && matchesQuery(market, query)
-            && (!watchOnly || favorites.has(market.id))
-            && (!hideSports || market.category !== 'sports')
-            && (!hideCrypto || market.category !== 'crypto'))
-        .sort((left: Market, right: Market) =>
-        {
-            if (sort === 'newest')
-            {
-                return right.createdAt.localeCompare(left.createdAt);
-            }
-            if (sort === 'ending')
-            {
-                return left.endsAt.localeCompare(right.endsAt);
-            }
-            return right.volume - left.volume;
-        });
-
-    derived paged = pageOf(filtered, page, PAGE_SIZE);
-
     const reset = (): void =>
     {
         query = '';
+        search = '';
         category = 'all';
         watchOnly = false;
-        hideSports = false;
-        hideCrypto = false;
         page = 1;
     };
 
@@ -87,7 +91,7 @@ export default component Browse()
                     label={ t('nav.search') }
                     placeholder={ t('nav.search') }
                     value={ query }
-                    onInput={ (next) => { query = next; page = 1; } }
+                    onInput={ (next) => onQuery(next) }
                 />
             </div>
             <span class="sm:hidden">
@@ -112,15 +116,13 @@ export default component Browse()
             <Select
                 options={ sortOptions }
                 value={ sort }
-                onChange={ (next) => { sort = next; page = 1; } }
+                onChange={ (next) => { sort = next as MarketSort; page = 1; } }
                 label={ t('browse.sortLabel') }
             />
             <Chip compact icon="bookmark" selected={ watchOnly } onSelect={ () => { watchOnly = !watchOnly; page = 1; } }>{ t('browse.watchlist') }</Chip>
-            <Chip compact selected={ hideSports } onSelect={ () => { hideSports = !hideSports; page = 1; } }>{ t('browse.hideSports') }</Chip>
-            <Chip compact selected={ hideCrypto } onSelect={ () => { hideCrypto = !hideCrypto; page = 1; } }>{ t('browse.hideCrypto') }</Chip>
         </div>
 
-        <Show when={ markets.loading() }>
+        <Show when={ markets.loading() && markets.data() === undefined }>
             <div class={ MARKET_GRID }>
                 <Skeleton class="h-44 rounded-card" />
                 <Skeleton class="h-44 rounded-card" />
@@ -131,28 +133,30 @@ export default component Browse()
             </div>
         </Show>
 
-        <Show when={ !markets.loading() }>
-            <Show
-                when={ paged.rows.length > 0 }
-                fallback={
-                    <EmptyState
-                        icon={ watchOnly ? 'bookmark' : 'search' }
-                        title={ watchOnly ? t('browse.emptyWatchlist') : t('browse.noResults') }
-                        hint={ watchOnly ? t('browse.emptyWatchlistHint') : t('browse.noResultsHint') }
-                    >
-                        <Button variant="outline" onClick={ () => reset() }>{ t('browse.clearFilters') }</Button>
-                    </EmptyState>
-                }
-            >
-                <div class={ MARKET_GRID }>
-                    <For each={ paged.rows } key={ (market) => market.id }>
-                        { (market) => <MarketCard market={ market } /> }
-                    </For>
-                </div>
-                <div class="mt-6">
-                    <Pagination page={ paged.current } pages={ paged.pages } onChange={ (next) => page = next } />
-                </div>
-            </Show>
+        <Show when={ markets.data() }>
+            { (data) =>
+                <Show
+                    when={ data().rows.length > 0 }
+                    fallback={
+                        <EmptyState
+                            icon={ watchOnly ? 'bookmark' : 'search' }
+                            title={ watchOnly ? t('browse.emptyWatchlist') : t('browse.noResults') }
+                            hint={ watchOnly ? t('browse.emptyWatchlistHint') : t('browse.noResultsHint') }
+                        >
+                            <Button variant="outline" onClick={ () => reset() }>{ t('browse.clearFilters') }</Button>
+                        </EmptyState>
+                    }
+                >
+                    <div class={ MARKET_GRID }>
+                        <For each={ data().rows } key={ (market) => market.id }>
+                            { (market) => <MarketCard market={ market } /> }
+                        </For>
+                    </div>
+                    <div class="mt-6">
+                        <Pagination page={ data().page } pages={ data().pages } onChange={ (next) => page = next } />
+                    </div>
+                </Show>
+            }
         </Show>
 
         <Sheet open={ filtersOpen } title={ t('browse.filters') } onClose={ () => filtersOpen = false }>
@@ -162,17 +166,15 @@ export default component Browse()
                     <Select
                         options={ sortOptions }
                         value={ sort }
-                        onChange={ (next) => { sort = next; page = 1; } }
+                        onChange={ (next) => { sort = next as MarketSort; page = 1; } }
                         label={ t('browse.sortLabel') }
                     />
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <Chip icon="bookmark" selected={ watchOnly } onSelect={ () => { watchOnly = !watchOnly; page = 1; } }>{ t('browse.watchlist') }</Chip>
-                    <Chip selected={ hideSports } onSelect={ () => { hideSports = !hideSports; page = 1; } }>{ t('browse.hideSports') }</Chip>
-                    <Chip selected={ hideCrypto } onSelect={ () => { hideCrypto = !hideCrypto; page = 1; } }>{ t('browse.hideCrypto') }</Chip>
                 </div>
                 <Button block onClick={ () => filtersOpen = false }>
-                    { t('browse.apply') } ({ filtered.length })
+                    { t('browse.apply') } ({ markets.data()?.total ?? 0 })
                 </Button>
             </div>
         </Sheet>

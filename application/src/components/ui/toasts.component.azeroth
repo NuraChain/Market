@@ -9,7 +9,7 @@ export default component Toasts()
     const toasts = useToasts();
 
     <div
-        class="pointer-events-none fixed inset-x-0 bottom-[calc(var(--tabbar-h)+env(safe-area-inset-bottom)+0.75rem)] z-[60] flex flex-col items-center gap-2 px-4 lg:bottom-6"
+        class="pointer-events-none fixed inset-x-0 bottom-[calc(var(--tabbar-h)+env(safe-area-inset-bottom)+0.75rem)] z-[var(--z-toast)] flex flex-col items-center gap-2 px-4 lg:bottom-6"
         aria-live="polite"
     >
         <For each={ toasts.items() } key={ (toast) => toast.id }>

@@ -1,11 +1,11 @@
 // Pure market predicates and lookups. DOM-free and store-free, so a card can ask
 // `isBinary(market)` without pulling the markets resource (or api.ts's module graph) in.
 
-import type { Category, Market } from '../api.ts';
+import { KNOWN_CATEGORIES, type KnownCategory, type Market } from '../api.ts';
 
 import type { IconName } from '../icons/registry.ts';
 
-export const CATEGORY_ICON: Record<Category, IconName> = {
+export const CATEGORY_ICON: Record<KnownCategory, IconName> = {
     politics: 'cat-politics',
     crypto: 'cat-crypto',
     sports: 'cat-sports',
@@ -16,6 +16,18 @@ export const CATEGORY_ICON: Record<Category, IconName> = {
     world: 'cat-world'
 };
 
+/** The icon for any category: curated ones keep theirs, admin-minted ones get the compass. */
+export function categoryIcon(category: string): IconName
+{
+    return (CATEGORY_ICON as Record<string, IconName>)[category] ?? 'compass';
+}
+
+/** True when a category has a first-class i18n label (otherwise the raw name is shown). */
+export function isKnownCategory(category: string): category is KnownCategory
+{
+    return (KNOWN_CATEGORIES as readonly string[]).includes(category);
+}
+
 /** The card's headline probability: a binary market's yes price, a race's leader price. */
 export function leadPrice(market: Market): number
 {
@@ -25,18 +37,4 @@ export function leadPrice(market: Market): number
 export function isBinary(market: Market): boolean
 {
     return market.outcomes.length === 1;
-}
-
-/** Case-folded substring match over BOTH languages, so search works from either keyboard. */
-export function matchesQuery(market: Market, query: string): boolean
-{
-    const needle = query.trim().toLowerCase();
-    if (needle === '')
-    {
-        return true;
-    }
-    return market.title.en.toLowerCase().includes(needle)
-        || market.title.fa.includes(needle)
-        || market.outcomes.some((outcome) =>
-            outcome.label.en.toLowerCase().includes(needle) || outcome.label.fa.includes(needle));
 }

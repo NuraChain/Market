@@ -17,7 +17,8 @@
         "@azerothjs/kit": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/kit",
         "@azerothjs/logger": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/logger",
         "@azerothjs/schema": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/schema",
-        "azerothjs": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/azerothjs"
+        "azerothjs": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/azerothjs",
+        "viem": "^2.55.10"
     },
     "devDependencies": {
         "@azerothjs/cli": "file:C:/Users/IntelligentQuantum/Documents/Projects/AzerothJS/packages/cli",

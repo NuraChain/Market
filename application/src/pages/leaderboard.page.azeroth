@@ -1,9 +1,11 @@
 ﻿import { client, PERIODS, type Period } from '../api.ts';
 import { pageOf } from '../lib/paged.ts';
+import { shortAddress, addressGradient } from '../lib/wallet.ts';
 
 import { useLocale } from '../stores/locale.store.ts';
+import { useSession } from '../stores/session.store.ts';
 
-import { formatMoney, formatVolume } from '../i18n/format.ts';
+import { formatVolume, formatSigned } from '../i18n/format.ts';
 
 import Icon from '../icons/icon.component.azeroth';
 
@@ -19,6 +21,7 @@ const PAGE_SIZE = 10;
 export default component Leaderboard()
 {
     const { t, lang } = useLocale();
+    const session = useSession();
 
     state period: Period = 'week';
     state page = 1;
@@ -52,7 +55,7 @@ export default component Leaderboard()
                     <For each={ paged.rows } key={ (row) => `${ period }-${ row.rank }` }>
                     { (row) =>
                         <li class="motion-safe:animate-rise">
-                            <div class={ `${ cardClass({ tone: row.name === 'IntelligentQuantum' ? 'brand' : 'line', padding: 'snug' }) } flex items-center gap-3` }>
+                            <div class={ `${ cardClass({ tone: row.address === session.address().toLowerCase() ? 'brand' : 'line', padding: 'snug' }) } flex items-center gap-3` }>
                                 <Show
                                     when={ row.rank <= 3 }
                                     fallback={
@@ -68,12 +71,12 @@ export default component Leaderboard()
                                         </span>
                                     </Tooltip>
                                 </Show>
-                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-overlay text-[13px] font-bold text-muted" aria-hidden="true">{ row.name.slice(0, 1).toUpperCase() }</span>
+                                <span class="h-9 w-9 shrink-0 overflow-hidden rounded-full ring-2 ring-line" style={ `background: ${ addressGradient(row.address) }` } aria-hidden="true"></span>
                                 <span class="min-w-0 flex-1">
-                                    <span class="block truncate text-[14px] font-bold">{ row.name }</span>
+                                    <span class="nums latin-nums block truncate text-[14px] font-bold" dir="ltr">{ shortAddress(row.address) }</span>
                                     <span class="nums block text-[12px] text-faint">{ t('market.volume') }: { formatVolume(row.volume, lang()) }</span>
                                 </span>
-                                <span class="nums shrink-0 text-[15px] font-bold text-yes">+{ formatMoney(row.profit, lang(), { compact: true }) }</span>
+                                <span class={ row.profit >= 0 ? 'nums shrink-0 text-[15px] font-bold text-yes' : 'nums shrink-0 text-[15px] font-bold text-no' }>{ formatSigned(row.profit, lang()) }</span>
                             </div>
                         </li>
                     }

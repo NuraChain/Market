@@ -36,7 +36,7 @@ export default component ChanceRing(props: { share: number; size?: number })
             stroke-linecap="round"
             stroke-dasharray={ `0 ${ circumference }` }
             style="transition: stroke-dasharray var(--motion-slow) var(--ease-out);"
-            ref={ (element: SVGCircleElement) => { arc = element; } }
+            ref={ (element) => { arc = element; } }
         />
     </svg>
 }

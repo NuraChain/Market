@@ -8,6 +8,7 @@ import { useTheme } from '../../stores/theme.store.ts';
 import { useChrome } from '../../stores/chrome.store.ts';
 import { useSession } from '../../stores/session.store.ts';
 import { useToasts } from '../../stores/toasts.store.ts';
+import { useAdmin } from '../../stores/admin.store.ts';
 
 import { dismissOn } from '../../composables/dismiss.composable.ts';
 import { rovingFocus } from '../../composables/roving-focus.composable.ts';
@@ -29,6 +30,7 @@ export default component Header()
     const chrome = useChrome();
     const session = useSession();
     const toasts = useToasts();
+    const admin = useAdmin();
     const { navigate } = useNavigate();
 
     state accountOpen = false;
@@ -36,11 +38,8 @@ export default component Header()
     let menuRoot: HTMLElement | null = null;
     let avatarButton: HTMLElement | null = null;
 
-    resource summary = (connected: boolean) =>
-    {
-        void connected;
-        return client.portfolio.summary();
-    } with { source: session.connected() };
+    resource summary = (address: string) => client.portfolio.summary({ query: { address } })
+        with { source: session.connected() ? session.address() : false };
 
     dismissOn({
         open: () => accountOpen,
@@ -57,7 +56,7 @@ export default component Header()
 
     const onMenuKeys = rovingFocus({ open: () => accountOpen, root: () => menuRoot });
 
-    <header class="sticky top-0 z-40 border-b border-line bg-chrome backdrop-blur-md">
+    <header class="sticky top-0 z-[var(--z-header)] border-b border-line bg-chrome backdrop-blur-md">
         <div class="shell flex h-14 items-center gap-1">
             <Link to="/" class="me-2 flex items-center gap-2.5 text-text no-underline">
                 <span class="flex h-8 w-8 items-center justify-center rounded-control bg-gold-soft text-gold">
@@ -70,6 +69,9 @@ export default component Header()
                 <Link class="rounded-control px-3 py-2 text-[14px] font-semibold text-muted no-underline transition-colors duration-200 hover:bg-overlay hover:text-text [&.active]:text-text" to="/browse" activeClass="active">{ t('nav.browse') }</Link>
                 <Link class="rounded-control px-3 py-2 text-[14px] font-semibold text-muted no-underline transition-colors duration-200 hover:bg-overlay hover:text-text [&.active]:text-text" to="/portfolio" activeClass="active">{ t('nav.portfolio') }</Link>
                 <Link class="rounded-control px-3 py-2 text-[14px] font-semibold text-muted no-underline transition-colors duration-200 hover:bg-overlay hover:text-text [&.active]:text-text" to="/leaderboard" activeClass="active">{ t('nav.leaderboard') }</Link>
+                <Show when={ admin.isAdmin() }>
+                    <Link class="rounded-control px-3 py-2 text-[14px] font-semibold text-muted no-underline transition-colors duration-200 hover:bg-overlay hover:text-text [&.active]:text-text" to="/admin" activeClass="active">{ t('admin.title') }</Link>
+                </Show>
             </nav>
 
             <div class="ms-auto flex items-center gap-1">
@@ -110,10 +112,10 @@ export default component Header()
                     <Link to="/portfolio" class="nums me-1 hidden flex-col items-end text-end no-underline sm:flex">
                         <span class="text-[11px] leading-tight text-muted">{ t('portfolio.title') }</span>
                         <Show when={ !summary.loading() } fallback={ <Skeleton class="mt-0.5 h-3.5 w-14 rounded" /> }>
-                            <span class="text-[13px] font-bold leading-tight text-brand">{ formatMoney(summary.data()?.current ?? 0, lang()) }</span>
+                            <span class="text-[13px] font-bold leading-tight text-brand">{ formatMoney(summary.data()?.current ?? 0, lang(), { compact: true }) }</span>
                         </Show>
                     </Link>
-                    <div class="relative" ref={ (element: HTMLElement) => { menuRoot = element; } } onKeydown={ (event) => onMenuKeys(event as KeyboardEvent) }>
+                    <div class="relative" ref={ (element) => { menuRoot = element; } } onKeydown={ (event) => onMenuKeys(event as KeyboardEvent) }>
                         <Tooltip label={ t('settings.account') }>
                             <button
                                 class="flex h-9 w-9 cursor-pointer items-center justify-center overflow-hidden rounded-full ring-2 ring-line transition duration-200 hover:ring-brand active:scale-95"
@@ -121,7 +123,7 @@ export default component Header()
                                 aria-label={ shortAddress(session.address()) }
                                 aria-haspopup="menu"
                                 aria-expanded={ accountOpen ? 'true' : 'false' }
-                                ref={ (element: HTMLElement) => { avatarButton = element; } }
+                                ref={ (element) => { avatarButton = element; } }
                                 onClick={ () => accountOpen = !accountOpen }
                             >
                                 <span class="h-full w-full" style={ `background: ${ addressGradient(session.address()) }` } aria-hidden="true"></span>
@@ -130,12 +132,15 @@ export default component Header()
                         <Show when={ accountOpen }>
                             <MenuPanel label={ t('nav.menu') }>
                                 <div class="border-b border-line px-3 pb-2.5 pt-2">
-                                    <p class="text-[14px] font-bold">IntelligentQuantum</p>
-                                    <p class="nums latin-nums text-[12px] text-faint" dir="ltr">{ shortAddress(session.address()) }</p>
+                                    <p class="nums latin-nums text-[14px] font-bold" dir="ltr">{ shortAddress(session.address()) }</p>
+                                    <p class="text-[12px] text-faint">{ session.wallet() ?? '' }</p>
                                 </div>
                                 <MenuItem icon="wallet" onSelect={ () => goTo('/portfolio') }>{ t('nav.portfolio') }</MenuItem>
                                 <MenuItem icon="trophy" onSelect={ () => goTo('/leaderboard') }>{ t('nav.leaderboard') }</MenuItem>
                                 <MenuItem icon="settings" onSelect={ () => goTo('/settings') }>{ t('nav.settings') }</MenuItem>
+                                <Show when={ admin.isAdmin() }>
+                                    <MenuItem icon="gavel" onSelect={ () => goTo('/admin') }>{ t('admin.title') }</MenuItem>
+                                </Show>
                                 <div class="my-1 h-px bg-line" aria-hidden="true"></div>
                                 <MenuItem icon="log-out" danger onSelect={ () => { accountOpen = false; session.disconnect(); toasts.push('info', t('toast.disconnected'), 'log-out'); } }>{ t('profile.disconnect') }</MenuItem>
                             </MenuPanel>

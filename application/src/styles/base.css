@@ -58,12 +58,18 @@
         -webkit-text-size-adjust: 100%;
         text-rendering: optimizeLegibility;
         -webkit-font-smoothing: antialiased;
+    }
+
+    /* Thin, tokened scrollbars everywhere - default browser chrome reads as foreign.
+       `scrollbar-width` is NOT inherited, so it must land on every element or Chromium
+       renders fat native bars on inner scrollables (sheets, tables). Modern Chromium and
+       Firefox honor these two; the ::-webkit rules below cover older engines. The .rail
+       rules still win (more specific) and keep carousels scrollbar-free. */
+    *
+    {
         scrollbar-color: var(--line-strong) transparent;
         scrollbar-width: thin;
     }
-
-    /* Thin, tokened scrollbars everywhere - default browser chrome reads as foreign. The
-       .rail rules below still win (more specific) and keep carousels scrollbar-free. */
     *::-webkit-scrollbar
     {
         width: 8px;

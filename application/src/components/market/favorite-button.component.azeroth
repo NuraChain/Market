@@ -17,7 +17,16 @@ export default component FavoriteButton(props: { marketId: string; size?: 'sm' |
     const toggle = (): void =>
     {
         const added = favorites.toggle(props.marketId);
-        toasts.push('success', added ? t('toast.watchAdded') : t('toast.watchRemoved'), 'bookmark');
+        // Removing is not a success - it is an acknowledgement. Same tone for both read as
+        // "well done" for throwing something away.
+        if (added)
+        {
+            toasts.push('success', t('toast.watchAdded'), 'bookmark');
+        }
+        else
+        {
+            toasts.push('info', t('toast.watchRemoved'), 'bookmark');
+        }
     };
 
     <Tooltip label={ t('market.save') }>

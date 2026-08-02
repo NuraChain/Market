@@ -2,6 +2,7 @@
 import { useLocale } from '../../stores/locale.store.ts';
 import { useTheme } from '../../stores/theme.store.ts';
 import { useChrome } from '../../stores/chrome.store.ts';
+import { useAdmin } from '../../stores/admin.store.ts';
 
 import Icon from '../../icons/icon.component.azeroth';
 
@@ -15,6 +16,7 @@ export default component MenuSheet()
     const { t, lang, setLang } = useLocale();
     const appearance = useTheme();
     const chrome = useChrome();
+    const admin = useAdmin();
 
     <Sheet open={ chrome.menuOpen() } title={ t('nav.menu') } onClose={ () => chrome.close() }>
         <div class="flex flex-col gap-1">
@@ -36,6 +38,17 @@ export default component MenuSheet()
                 <span>{ t('nav.settings') }</span>
                 <Icon name="chevron-right" size={ 17 } class="ms-auto text-faint" />
             </Link>
+            <Show when={ admin.isAdmin() }>
+                <Link
+                    class="flex h-12 items-center gap-3 rounded-control px-3 text-[15px] font-semibold text-text no-underline transition-colors duration-200 hover:bg-overlay"
+                    to="/admin"
+                    onClick={ () => chrome.close() }
+                >
+                    <Icon name="gavel" size={ 20 } class="text-brand" />
+                    <span>{ t('admin.title') }</span>
+                    <Icon name="chevron-right" size={ 17 } class="ms-auto text-faint" />
+                </Link>
+            </Show>
 
             <div class="my-3 h-px bg-line" aria-hidden="true"></div>
 

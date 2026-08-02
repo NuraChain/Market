@@ -109,7 +109,7 @@ export function iconButtonClass(size: IconButtonSize, bordered = false): string
 }
 
 /** The floating dropdown panel; alignment/offset/width stay at the call site. */
-export const MENU_PANEL = 'z-50 max-w-[calc(100vw-1rem)] rounded-card border border-line bg-overlay shadow-2xl motion-safe:animate-pop';
+export const MENU_PANEL = 'z-[var(--z-menu)] max-w-[calc(100vw-1rem)] rounded-card border border-line bg-overlay shadow-2xl motion-safe:animate-pop';
 
 /** The market-card grid: 1/2/3/4 columns across the breakpoints. */
 export const MARKET_GRID = 'grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-4';

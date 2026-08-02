@@ -81,14 +81,14 @@ export default component Select(props: {
         }
     };
 
-    <div class="relative inline-flex" ref={ (element: HTMLElement) => { root = element; } } onKeydown={ (event) => onKeys(event as KeyboardEvent) }>
+    <div class="relative inline-flex" ref={ (element) => { root = element; } } onKeydown={ (event) => onKeys(event as KeyboardEvent) }>
         <button
             class="flex h-9 cursor-pointer items-center gap-1.5 rounded-control border border-line bg-raised px-3 text-[13px] font-semibold text-text transition-colors duration-200 hover:border-line-strong"
             type="button"
             aria-haspopup="listbox"
             aria-expanded={ open ? 'true' : 'false' }
             aria-label={ props.label }
-            ref={ (element: HTMLElement) => { trigger = element; } }
+            ref={ (element) => { trigger = element; } }
             onClick={ () => { if (open) { open = false; } else { openMenu(); } } }
         >
             <Show when={ selected !== undefined && selected.icon !== undefined }>

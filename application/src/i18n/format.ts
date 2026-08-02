@@ -3,19 +3,18 @@
 // rule that keeps Persian and Latin digits from ever mixing in one view.
 //
 // The locale contract (decided with the product owner):
-//   en - Latin digits, $ amounts, compact volumes ($1.2M).
-//   fa - Persian-Arabic digits, Toman amounts converted at a DISPLAY rate, Persian scale
-//        words (هزار/میلیون/میلیارد). Charts opt out via the .latin-nums utility instead of
-//        calling different functions.
+//   en - Latin digits, native-token amounts, compact volumes (1.2M ETH).
+//   fa - Persian-Arabic digits with Persian scale words (هزار/میلیون/میلیارد); the token
+//        SYMBOL stays Latin in both (it is a ticker, not prose). Charts opt out via the
+//        .latin-nums utility instead of calling different functions.
 //
-// Platform amounts are USD-denominated numbers in the data; the Toman conversion is a fixed
-// presentation rate for the UI phase (a real FX feed replaces DISPLAY_TOMAN_PER_USD later,
-// nothing else moves).
+// Amounts are native-token numbers straight from the chain (via the indexer) - there is no
+// display-rate fiction anywhere.
 
 import type { Lang } from '../stores/locale.store.ts';
 
-/** UI-phase presentation rate; the single number a real FX feed will replace. */
-export const DISPLAY_TOMAN_PER_USD = 90_000;
+/** The native token's ticker, stamped on every money amount. */
+const SYMBOL = import.meta.env.VITE_CURRENCY_SYMBOL ?? 'ETH';
 
 const FA_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'] as const;
 
@@ -45,49 +44,52 @@ export function faDigits(text: string): string
     return out;
 }
 
-function group(value: number): string
+/**
+ * A native-token amount body. Amounts here are CRYPTO, not fiat, and the difference is not
+ * cosmetic: two-decimal rounding is a currency convention that renders a real 0.0005 ETH bet
+ * as `0` - the app telling a trader their stake is nothing. Sub-unit amounts are the normal
+ * case on a chain whose unit is worth thousands, so they keep four significant digits, while
+ * amounts above 1 keep up to four decimals with no fiat-style trailing-zero padding.
+ */
+function tokenBody(value: number): string
 {
-    return new Intl.NumberFormat('en-US').format(value);
-}
-
-/** Grouped money body: whole dollars stay clean ($12,400), fractional show both cents ($1,240.50). */
-function groupMoney(value: number): string
-{
-    const rounded = Math.round(value * 100) / 100;
-    return new Intl.NumberFormat
-    ('en-US',
-        Number.isInteger(rounded)
-            ? { maximumFractionDigits: 0 }
-            : { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(rounded);
+    if (!Number.isFinite(value) || value === 0)
+    {
+        return '0';
+    }
+    if (Math.abs(value) >= 1)
+    {
+        return new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(value);
+    }
+    return new Intl.NumberFormat('en-US', { maximumSignificantDigits: 4 }).format(value);
 }
 
 /**
- * A money amount. en: `$12,400` / compact `$1.2M` when asked. fa: converted to Toman and
- * spoken with Persian scale words - `۸۶۸ هزار تومان` - because a nine-digit Toman figure is
- * noise where a magnitude is the message.
+ * A money amount in the native token. en: `12,400 ETH` / compact `1.2M ETH` when asked.
+ * fa: Persian digits with Persian scale words - `۱٫۲ میلیون ETH` - because a nine-digit
+ * figure is noise where a magnitude is the message.
  */
-export function formatMoney(usd: number, lang: Lang, options: { compact?: boolean } = {}): string
+export function formatMoney(amount: number, lang: Lang, options: { compact?: boolean } = {}): string
 {
     if (lang === 'fa')
     {
-        const toman = Math.round(usd * DISPLAY_TOMAN_PER_USD);
-        return `${ faScale(toman) } تومان`;
+        return `${ faScale(amount) } ${ SYMBOL }`;
     }
     if (options.compact === true)
     {
-        return `$${ compact(usd) }`;
+        return `${ compact(amount) } ${ SYMBOL }`;
     }
-    return `$${ groupMoney(usd) }`;
+    return `${ tokenBody(amount) } ${ SYMBOL }`;
 }
 
 /** A traded-volume amount: always compact, always labeled by the caller. */
-export function formatVolume(usd: number, lang: Lang): string
+export function formatVolume(amount: number, lang: Lang): string
 {
     if (lang === 'fa')
     {
-        return `${ faScale(Math.round(usd * DISPLAY_TOMAN_PER_USD)) } تومان`;
+        return `${ faScale(amount) } ${ SYMBOL }`;
     }
-    return `$${ compact(usd) }`;
+    return `${ compact(amount) } ${ SYMBOL }`;
 }
 
 /** en `1.2M`; the shared compaction. */
@@ -105,7 +107,7 @@ function compact(value: number): string
     {
         return `${ trim(value / 1_000) }K`;
     }
-    return group(Math.round(value));
+    return tokenBody(value);
 }
 
 /** fa compaction with Persian scale words and Persian digits. */
@@ -123,7 +125,7 @@ function faScale(value: number): string
     {
         return `${ faDigits(trim(value / 1_000)) } هزار`;
     }
-    return faDigits(group(Math.round(value)));
+    return faDigits(tokenBody(value));
 }
 
 /** One decimal, trailing zero dropped: 1.0 -> "1", 1.24 -> "1.2". */
@@ -133,30 +135,134 @@ function trim(value: number): string
     return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 }
 
-/** A probability as a percentage: en `34%`; fa the Arabic sign leading in logical order (`٪۳۴`), which RTL renders as `۳۴٪`. */
-export function formatPercent(share: number, lang: Lang): string
+/** How a probability is spelled. The reader's choice, from the Odds format setting. */
+export type OddsMode = 'price' | 'percent';
+
+/**
+ * A probability (0..1) as whole points, with the two lies a bare `Math.round` tells removed:
+ *
+ *   - a LIVE outcome never renders 0 or 100. `0¢` on a buy button reads as free, and `100%`
+ *     on something still tradeable reads as settled. Only an exact 0 or 1 - a resolved
+ *     market - is allowed to say so.
+ *   - a non-finite share renders 0 rather than `NaN%`.
+ *
+ * This clamps the DISPLAY only; no value is ever altered.
+ */
+function oddsPoints(share: number): number
 {
-    const value = Math.round(share * 100);
-    return lang === 'fa' ? `٪${ faDigits(String(value)) }` : `${ value }%`;
+    if (!Number.isFinite(share) || share <= 0)
+    {
+        return share >= 1 ? 100 : 0;
+    }
+    if (share >= 1)
+    {
+        return 100;
+    }
+    return Math.min(99, Math.max(1, Math.round(share * 100)));
+}
+
+/** Renders whole points in the reader's mode and digits. */
+function odds(points: number, lang: Lang, mode: OddsMode): string
+{
+    const body = lang === 'fa' ? faDigits(String(points)) : String(points);
+    if (mode === 'percent')
+    {
+        // fa puts the sign first in LOGICAL order; RTL renders it trailing (`۳۴٪`).
+        return lang === 'fa' ? `٪${ body }` : `${ body }%`;
+    }
+    return `${ body }¢`;
 }
 
 /**
- * The DUAL price display that fixes the cents-vs-percent confusion: one convention,
- * everywhere - `34¢` with the chance rendered beside it by the caller. fa keeps the cent
- * frame (the platform currency) in Persian digits: `۳۴¢`.
+ * THE probability renderer. One function for every 0..1 value in the UI, so the same number
+ * can never appear as `34¢` in one corner and `34%` in another - which it did, on the same
+ * screen. The reader picks the frame once in Settings.
  */
-export function formatPrice(share: number, lang: Lang): string
+export function formatOdds(share: number, lang: Lang, mode: OddsMode): string
 {
-    const cents = Math.round(share * 100);
+    return odds(oddsPoints(share), lang, mode);
+}
+
+/**
+ * A whole outcome set, rounded so the displayed numbers SUM TO EXACTLY 100. Rounding each
+ * outcome independently prints 33/33/33 (=99) or 34/34/33 (=101) for a three-way market, and
+ * 35¢/66¢ (=101¢) for a binary pair - a market that visibly does not add up reads as broken.
+ * Largest-remainder apportionment fixes that: floor everything, then hand the leftover points
+ * to the largest fractional parts.
+ *
+ * @param shares - The outcome probabilities, in display order.
+ * @returns One formatted string per outcome, in the same order.
+ */
+export function formatOddsSet(shares: readonly number[], lang: Lang, mode: OddsMode): string[]
+{
+    const raw = shares.map((share) => (Number.isFinite(share) && share > 0 ? share : 0));
+    const total = raw.reduce((sum, share) => sum + share, 0);
+    if (total <= 0)
+    {
+        return raw.map(() => odds(0, lang, mode));
+    }
+    // Normalize first: on-chain prices sum to ~1 but not exactly, and the display must.
+    const scaled = raw.map((share) => (share / total) * 100);
+    const points = scaled.map((value) => Math.floor(value));
+    let left = 100 - points.reduce((sum, value) => sum + value, 0);
+    const byRemainder = scaled
+        .map((value, index) => ({ index, remainder: value - Math.floor(value) }))
+        .sort((a, b) => b.remainder - a.remainder);
+    for (const entry of byRemainder)
+    {
+        if (left <= 0)
+        {
+            break;
+        }
+        points[entry.index] = (points[entry.index] ?? 0) + 1;
+        left--;
+    }
+    return points.map((value) => odds(value, lang, mode));
+}
+
+/**
+ * A REALIZED fill price - collateral per share, fee included - which is not a probability and
+ * is legitimately allowed above 1 (the taker pays the fee on top of a near-certain outcome).
+ * Always in cents, never clamped: clamping it would misreport what someone actually paid.
+ */
+export function formatFillPrice(price: number, lang: Lang): string
+{
+    const cents = Number.isFinite(price) ? Math.round(price * 100) : 0;
     return lang === 'fa' ? `${ faDigits(String(cents)) }¢` : `${ cents }¢`;
 }
 
-/** A signed profit/loss amount with its sign rendered locale-correctly. */
-export function formatSigned(usd: number, lang: Lang): string
+/**
+ * A share count. Exists because six call sites reached for `.toFixed(1)` directly, which
+ * leaks Latin digits into the Persian UI - the one thing this module exists to prevent.
+ */
+export function formatShares(shares: number, lang: Lang): string
 {
-    const sign = usd > 0 ? '+' : usd < 0 ? '−' : '';
-    const body = formatMoney(Math.abs(usd), lang, { compact: true });
+    const body = (Number.isFinite(shares) ? shares : 0).toFixed(1);
+    return lang === 'fa' ? faDigits(body) : body;
+}
+
+/**
+ * A signed profit/loss amount. EVERY signed money value goes through this - rendering one
+ * through `formatMoney` instead gives a loss an ASCII hyphen and a gain no sign at all, which
+ * is how the leaderboard and the portfolio ended up disagreeing about what a profit looks like.
+ */
+export function formatSigned(amount: number, lang: Lang, options: { compact?: boolean } = {}): string
+{
+    const sign = amount > 0 ? '+' : amount < 0 ? '−' : '';
+    const body = formatMoney(Math.abs(amount), lang, { compact: options.compact ?? true });
     return `${ sign }${ body }`;
+}
+
+/**
+ * A change in probability, in PERCENTAGE POINTS - the unit a prediction market moves in.
+ * Rendering the raw 0..1 delta printed `+0.0` for anything under five points.
+ */
+export function formatPoints(delta: number, lang: Lang): string
+{
+    const points = Number.isFinite(delta) ? Math.round(delta * 1000) / 10 : 0;
+    const sign = points > 0 ? '+' : points < 0 ? '−' : '';
+    const body = Math.abs(points).toFixed(1);
+    return `${ sign }${ lang === 'fa' ? faDigits(body) : body }`;
 }
 
 /** Relative time for feeds: en `2h ago`, fa `۲ ساعت پیش`. Coarse on purpose - a trade feed

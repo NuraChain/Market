@@ -7,13 +7,15 @@ import
     faDigits,
     formatMoney,
     formatVolume,
-    formatPercent,
-    formatPrice,
+    formatOdds,
+    formatOddsSet,
+    formatFillPrice,
+    formatShares,
+    formatPoints,
     formatSigned,
     formatDate,
     formatDateTimeShort,
-    formatDateTime,
-    DISPLAY_TOMAN_PER_USD
+    formatDateTime
 } from '../src/i18n/format.ts';
 
 describe('faDigits', () =>
@@ -34,69 +36,141 @@ describe('faDigits', () =>
     });
 });
 
-describe('formatPrice - the dual price convention', () =>
+describe('formatOdds - ONE convention, chosen by the reader', () =>
 {
-    it('en renders cents', () =>
+    it('renders cents in price mode and percent in percent mode', () =>
     {
-        expect(formatPrice(0.34, 'en')).toBe('34¢');
+        expect(formatOdds(0.34, 'en', 'price')).toBe('34¢');
+        expect(formatOdds(0.34, 'en', 'percent')).toBe('34%');
     });
 
-    it('fa renders the same cents in Persian digits', () =>
+    it('fa keeps Persian digits, sign leading in logical order', () =>
     {
-        expect(formatPrice(0.34, 'fa')).toBe('۳۴¢');
+        expect(formatOdds(0.34, 'fa', 'price')).toBe('۳۴¢');
+        expect(formatOdds(0.34, 'fa', 'percent')).toBe('٪۳۴');
     });
 
-    it('rounds sub-cent prices instead of showing decimals', () =>
+    it('never renders a LIVE outcome as 0 or 100 - both are lies about a tradeable market', () =>
     {
-        expect(formatPrice(0.666, 'en')).toBe('67¢');
+        expect(formatOdds(0.004, 'en', 'price')).toBe('1¢');
+        expect(formatOdds(0.996, 'en', 'percent')).toBe('99%');
+    });
+
+    it('lets a RESOLVED outcome say 0 or 100 honestly', () =>
+    {
+        expect(formatOdds(0, 'en', 'percent')).toBe('0%');
+        expect(formatOdds(1, 'en', 'percent')).toBe('100%');
+    });
+
+    it('renders a non-finite share as zero rather than NaN', () =>
+    {
+        expect(formatOdds(Number.NaN, 'en', 'percent')).toBe('0%');
     });
 });
 
-describe('formatPercent', () =>
+describe('formatOddsSet - a displayed market always adds up', () =>
 {
-    it('en renders a trailing percent sign', () =>
+    const points = (values: readonly number[]): number[] =>
+        formatOddsSet(values, 'en', 'percent').map((entry) => Number(entry.replace('%', '')));
+
+    it('a binary pair sums to 100, where independent rounding gave 101', () =>
     {
-        expect(formatPercent(0.34, 'en')).toBe('34%');
+        expect(points([0.345, 0.655])).toEqual([35, 65]);
     });
 
-    it('fa renders the Arabic sign leading in logical order', () =>
+    it('a three-way market sums to 100 in both directions', () =>
     {
-        expect(formatPercent(0.34, 'fa')).toBe('٪۳۴');
+        expect(points([0.333, 0.333, 0.334]).reduce((a, b) => a + b, 0)).toBe(100);
+        expect(points([0.335, 0.335, 0.33]).reduce((a, b) => a + b, 0)).toBe(100);
+    });
+
+    it('normalizes a set the chain reports slightly off 1', () =>
+    {
+        expect(points([0.5, 0.49]).reduce((a, b) => a + b, 0)).toBe(100);
+    });
+
+    it('survives an all-zero set without dividing by zero', () =>
+    {
+        expect(points([0, 0])).toEqual([0, 0]);
     });
 });
 
-describe('formatMoney', () =>
+describe('formatFillPrice - a realized fill is not a probability', () =>
 {
-    it('en groups full amounts', () =>
+    it('renders above 100¢, because the taker pays the fee on top', () =>
     {
-        expect(formatMoney(12400, 'en')).toBe('$12,400');
+        expect(formatFillPrice(1.03, 'en')).toBe('103¢');
     });
 
-    it('en shows both cents once an amount is fractional', () =>
+    it('fa keeps Persian digits', () =>
     {
-        expect(formatMoney(1240.5, 'en')).toBe('$1,240.50');
-        expect(formatMoney(73.528, 'en')).toBe('$73.53');
+        expect(formatFillPrice(0.34, 'fa')).toBe('۳۴¢');
+    });
+});
+
+describe('formatShares', () =>
+{
+    it('keeps one decimal', () =>
+    {
+        expect(formatShares(39.74, 'en')).toBe('39.7');
+    });
+
+    it('fa uses Persian digits - the whole reason this function exists', () =>
+    {
+        expect(formatShares(39.7, 'fa')).toBe('۳۹٫۷');
+    });
+});
+
+describe('formatPoints - a probability move, in percentage points', () =>
+{
+    it('renders a five-point move as 5.0, not 0.1', () =>
+    {
+        expect(formatPoints(0.05, 'en')).toBe('+5.0');
+    });
+
+    it('signs a fall with a true minus', () =>
+    {
+        expect(formatPoints(-0.023, 'en')).toBe('−2.3');
+    });
+
+    it('zero carries no sign', () =>
+    {
+        expect(formatPoints(0, 'en')).toBe('0.0');
+    });
+});
+
+describe('formatMoney - native token amounts', () =>
+{
+    it('en groups full amounts with the ticker', () =>
+    {
+        expect(formatMoney(12400, 'en')).toBe('12,400 ETH');
+    });
+
+    it('en keeps crypto precision without fiat padding', () =>
+    {
+        expect(formatMoney(1240.5, 'en')).toBe('1,240.5 ETH');
+        expect(formatMoney(73.528, 'en')).toBe('73.528 ETH');
     });
 
     it('en compacts when asked', () =>
     {
-        expect(formatMoney(1_240_000, 'en', { compact: true })).toBe('$1.2M');
+        expect(formatMoney(1_240_000, 'en', { compact: true })).toBe('1.2M ETH');
     });
 
-    it('fa converts to Toman and speaks in scale words, not digit walls', () =>
+    it('en never rounds a small real amount to zero', () =>
     {
-        expect(formatMoney(10, 'fa')).toBe('۹۰۰ هزار تومان');
+        expect(formatMoney(0.25, 'en')).toBe('0.25 ETH');
     });
 
-    it('fa crosses into millions and billions with Persian decimals', () =>
+    it('fa speaks scale words in Persian digits, ticker stays Latin', () =>
     {
-        expect(formatMoney(100, 'fa')).toBe('۹ میلیون تومان');
-        expect(formatMoney(25_000, 'fa')).toBe('۲٫۳ میلیارد تومان');
+        expect(formatMoney(1_240_000, 'fa')).toBe('۱٫۲ میلیون ETH');
+        expect(formatMoney(2_300, 'fa')).toBe('۲٫۳ هزار ETH');
     });
 
     it('fa keeps small amounts as grouped Persian digits', () =>
     {
-        expect(formatMoney(0.005, 'fa')).toBe('۴۵۰ تومان');
+        expect(formatMoney(0.25, 'fa')).toBe('۰٫۲۵ ETH');
     });
 });
 
@@ -104,13 +178,13 @@ describe('formatVolume', () =>
 {
     it('en is always compact', () =>
     {
-        expect(formatVolume(3_400_000, 'en')).toBe('$3.4M');
-        expect(formatVolume(870, 'en')).toBe('$870');
+        expect(formatVolume(3_400_000, 'en')).toBe('3.4M ETH');
+        expect(formatVolume(870, 'en')).toBe('870 ETH');
     });
 
     it('fa mirrors the money scale words', () =>
     {
-        expect(formatVolume(3_400_000, 'fa')).toBe('۳۰۶ میلیارد تومان');
+        expect(formatVolume(3_400_000, 'fa')).toBe('۳٫۴ میلیون ETH');
     });
 });
 
@@ -118,22 +192,22 @@ describe('formatSigned - profit and loss', () =>
 {
     it('gains carry a plus', () =>
     {
-        expect(formatSigned(1250, 'en')).toBe('+$1.3K');
+        expect(formatSigned(1250, 'en')).toBe('+1.3K ETH');
     });
 
     it('losses carry a true minus sign, not a hyphen', () =>
     {
-        expect(formatSigned(-40, 'en')).toBe('−$40');
+        expect(formatSigned(-40, 'en')).toBe('−40 ETH');
     });
 
     it('zero carries no sign', () =>
     {
-        expect(formatSigned(0, 'en')).toBe('$0');
+        expect(formatSigned(0, 'en')).toBe('0 ETH');
     });
 
-    it('fa signs sit on Persian-digit Toman amounts', () =>
+    it('fa signs sit on Persian-digit amounts', () =>
     {
-        expect(formatSigned(-10, 'fa')).toBe('−۹۰۰ هزار تومان');
+        expect(formatSigned(-10, 'fa')).toBe('−۱۰ ETH');
     });
 });
 
@@ -173,10 +247,29 @@ describe('formatDate', () =>
     });
 });
 
-describe('the display rate', () =>
+describe('crypto amounts are not fiat amounts', () =>
 {
-    it('is the single number a real FX feed replaces', () =>
+    it('never renders a real sub-cent stake as zero', () =>
     {
-        expect(DISPLAY_TOMAN_PER_USD).toBe(90_000);
+        // Two-decimal rounding - a currency convention - turned a 0.0005 ETH bet into "0 ETH",
+        // the app telling a trader their stake was nothing.
+        expect(formatMoney(0.0005, 'en')).toBe('0.0005 ETH');
+        expect(formatMoney(0.004, 'en')).toBe('0.004 ETH');
+    });
+
+    it('keeps significant digits deep below one token', () =>
+    {
+        expect(formatMoney(0.000012345, 'en')).toBe('0.00001235 ETH');
+    });
+
+    it('drops fiat-style trailing zeros', () =>
+    {
+        expect(formatMoney(1.5, 'en')).toBe('1.5 ETH');
+        expect(formatMoney(25, 'en')).toBe('25 ETH');
+    });
+
+    it('fa keeps the same precision in Persian digits', () =>
+    {
+        expect(formatMoney(0.0005, 'fa')).toBe('۰٫۰۰۰۵ ETH');
     });
 });

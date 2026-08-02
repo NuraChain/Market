@@ -1,8 +1,6 @@
-﻿import type { Category } from '../api.ts';
-import { pageOf } from '../lib/paged.ts';
+import { client } from '../api.ts';
 
 import { useLocale } from '../stores/locale.store.ts';
-import { useMarkets } from '../stores/markets.store.ts';
 
 import CategoryRail from '../components/market/category-rail.component.azeroth';
 import MarketCard from '../components/market/market-card.component.azeroth';
@@ -18,18 +16,25 @@ const PAGE_SIZE = 12;
 export default component Home()
 {
     const { t } = useLocale();
-    const markets = useMarkets();
 
-    state category: Category | 'all' = 'all';
+    state category = 'all';
     state page = 1;
 
-    derived all = markets.data() ?? [];
-    derived featured = all.filter((market) => market.featured);
-    derived matching = all.filter((market) => category === 'all' || market.category === category);
-    derived paged = pageOf(matching, page, PAGE_SIZE);
+    resource featured = () => client.markets.list({ query: { featured: true, limit: 8 } });
+
+    resource markets = (key: string) =>
+    {
+        const [activeCategory = 'all', activePage = '1'] = key.split('|');
+        return client.markets.list({ query: {
+            ...(activeCategory === 'all' ? {} : { category: activeCategory }),
+            sort: 'volume',
+            page: Number(activePage),
+            limit: PAGE_SIZE
+        } });
+    } with { source: `${ category }|${ page }` };
 
     <section class="shell py-5">
-        <Show when={ markets.loading() }>
+        <Show when={ markets.loading() && markets.data() === undefined }>
             <div class="mb-8 flex gap-4 overflow-hidden">
                 <Skeleton class="h-64 w-[19.5rem] shrink-0 rounded-card sm:w-[22rem]" />
                 <Skeleton class="h-64 w-[19.5rem] shrink-0 rounded-card sm:w-[22rem]" />
@@ -49,31 +54,35 @@ export default component Home()
             </EmptyState>
         </Show>
 
-        <Show when={ markets.data() !== undefined }>
-            <FeaturedRail markets={ featured } />
+        <Show when={ markets.data() }>
+            { (data) =>
+                <div>
+                    <FeaturedRail markets={ featured.data()?.rows ?? [] } />
 
-            <h2 class="mb-3 text-lg font-bold tracking-tight">{ t('home.allMarkets') }</h2>
-            <div class="mb-3">
-                <CategoryRail selected={ category } onSelect={ (next) => { category = next; page = 1; } } />
-            </div>
+                    <h2 class="mb-3 text-lg font-bold tracking-tight">{ t('home.allMarkets') }</h2>
+                    <div class="mb-3">
+                        <CategoryRail selected={ category } onSelect={ (next) => { category = next; page = 1; } } />
+                    </div>
 
-            <Show
-                when={ paged.rows.length > 0 }
-                fallback={
-                    <EmptyState icon="search" title={ t('browse.noResults') } hint={ t('browse.noResultsHint') }>
-                        <Button variant="outline" icon="flame" onClick={ () => category = 'all' }>{ t('categories.all') }</Button>
-                    </EmptyState>
-                }
-            >
-                <div class={ MARKET_GRID }>
-                    <For each={ paged.rows } key={ (market) => market.id }>
-                        { (market) => <MarketCard market={ market } /> }
-                    </For>
+                    <Show
+                        when={ data().rows.length > 0 }
+                        fallback={
+                            <EmptyState icon="search" title={ t('browse.noResults') } hint={ t('browse.noResultsHint') }>
+                                <Button variant="outline" icon="flame" onClick={ () => category = 'all' }>{ t('categories.all') }</Button>
+                            </EmptyState>
+                        }
+                    >
+                        <div class={ MARKET_GRID }>
+                            <For each={ data().rows } key={ (market) => market.id }>
+                                { (market) => <MarketCard market={ market } /> }
+                            </For>
+                        </div>
+                        <div class="mt-6">
+                            <Pagination page={ data().page } pages={ data().pages } onChange={ (next) => page = next } />
+                        </div>
+                    </Show>
                 </div>
-                <div class="mt-6">
-                    <Pagination page={ paged.current } pages={ paged.pages } onChange={ (next) => page = next } />
-                </div>
-            </Show>
+            }
         </Show>
     </section>
 }

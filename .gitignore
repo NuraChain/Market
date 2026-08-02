@@ -6,3 +6,6 @@ logs/
 .env
 *.local
 .idea
+
+# Uploaded market/category art (content-addressed; not source).
+server/uploads/

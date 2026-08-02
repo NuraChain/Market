@@ -1,16 +1,16 @@
-﻿import { Link } from 'azerothjs';
-import { client, PERIODS, type Market, type Period, type Position } from '../api.ts';
+import { Link } from 'azerothjs';
+import { client, PERIODS, type Period, type Position } from '../api.ts';
 
 import { shortAddress, addressGradient } from '../lib/wallet.ts';
+import { copyText } from '../lib/clipboard.ts';
 import { pageOf } from '../lib/paged.ts';
 
 import { useLocale } from '../stores/locale.store.ts';
-import { useMarkets } from '../stores/markets.store.ts';
 import { useChrome } from '../stores/chrome.store.ts';
 import { useSession } from '../stores/session.store.ts';
 import { useToasts } from '../stores/toasts.store.ts';
 
-import { formatMoney, formatSigned, formatPrice, formatTimeAgo } from '../i18n/format.ts';
+import { formatMoney, formatSigned, formatFillPrice, formatShares, formatTimeAgo } from '../i18n/format.ts';
 
 import Chart from '../components/ui/chart.component.azeroth';
 import Ticker from '../components/ui/ticker.component.azeroth';
@@ -29,18 +29,17 @@ import Input from '../components/ui/input.component.azeroth';
 import Select from '../components/ui/select.component.azeroth';
 import Pagination from '../components/ui/pagination.component.azeroth';
 
-// The signed-in dashboard (the reference's profile page): identity header, stats row, the
-// P/L curve with period pills, then Positions/Activity. Signed out, the page is a designed
-// connect prompt - the data never loads for a visitor who cannot own it.
+import ClaimableList from '../components/market/claimable-list.component.azeroth';
+
+// The signed-in dashboard, all address-scoped and all real: the wallet IS the account, so
+// the identity is the address and every number is derived from that address's chain history
+// by the indexer. Signed out, the page is a designed connect prompt.
 export default component Portfolio()
 {
     const { t, lang, text } = useLocale();
-    const markets = useMarkets();
     const chrome = useChrome();
     const session = useSession();
-
     const toasts = useToasts();
-    const demoOnly = (): void => { toasts.push('info', t('toast.uiOnly'), 'info'); };
 
     state period: Period = 'week';
     state tab = 'positions';
@@ -50,22 +49,21 @@ export default component Portfolio()
     state positionsPage = 1;
     state activityPage = 1;
 
-    resource summary = (on: boolean) => { void on; return client.portfolio.summary(); }
-        with { source: session.connected() };
-    resource positions = (on: boolean) => { void on; return client.portfolio.positions(); }
-        with { source: session.connected() };
+    resource summary = (address: string) => client.portfolio.summary({ query: { address } })
+        with { source: session.connected() ? session.address() : false };
+    resource positions = (address: string) => client.portfolio.positions({ query: { address } })
+        with { source: session.connected() ? session.address() : false };
     resource profitCurve = (key: string) =>
-        client.portfolio.series({ query: { period: key.split('|')[1] as Period } })
-        with { source: session.connected() ? `pl|${ period }` : false };
-    resource activity = (on: boolean) => { void on; return client.portfolio.activity(); }
-        with { source: session.connected() && tab === 'activity' };
-
-    derived marketOf = (id: string): Market | undefined =>
-        (markets.data() ?? []).find((market) => market.id === id);
+    {
+        const [address = '', activePeriod = 'week'] = key.split('|');
+        return client.portfolio.series({ query: { address, period: activePeriod as Period } });
+    } with { source: session.connected() ? `${ session.address() }|${ period }` : false };
+    resource activity = (address: string) => client.portfolio.activity({ query: { address } })
+        with { source: session.connected() && tab === 'activity' ? session.address() : false };
 
     derived valueOf = (position: Position): number =>
     {
-        const outcome = marketOf(position.marketId)?.outcomes.find((candidate) => candidate.id === position.outcomeId);
+        const outcome = position.market.outcomes.find((candidate) => candidate.id === position.outcomeId);
         const price = outcome?.price ?? 0;
         return position.shares * (position.side === 'yes' ? price : 1 - price);
     };
@@ -74,20 +72,36 @@ export default component Portfolio()
 
     derived biggestWin = (positions.data() ?? []).reduce((best, position) => Math.max(best, gainOf(position)), 0);
 
-    derived visiblePositions = statusFilter === 'closed'
-        ? []
-        : (positions.data() ?? [])
-            .filter((position) =>
-            {
-                const market = marketOf(position.marketId);
-                return market === undefined || query.trim() === ''
-                    ? true
-                    : market.title.en.toLowerCase().includes(query.trim().toLowerCase()) || market.title.fa.includes(query.trim());
-            })
-            .sort((left, right) => (valueDescending ? valueOf(right) - valueOf(left) : valueOf(left) - valueOf(right)));
+    derived titleOf = (marketId: string): string =>
+    {
+        const match = (positions.data() ?? []).find((position) => position.marketId === marketId);
+        return match === undefined ? `#${ marketId }` : text(match.market.title);
+    };
+
+    derived visiblePositions = (positions.data() ?? [])
+        .filter((position) =>
+        {
+            const settled = position.market.status === 'resolved' || position.market.status === 'voided';
+            return statusFilter === 'closed' ? settled : !settled;
+        })
+        .filter((position) => (query.trim() === ''
+            ? true
+            : position.market.title.en.toLowerCase().includes(query.trim().toLowerCase())
+                || position.market.title.fa.includes(query.trim())))
+        .sort((left, right) => (valueDescending ? valueOf(right) - valueOf(left) : valueOf(left) - valueOf(right)));
 
     derived positionsView = pageOf(visiblePositions, positionsPage, 10);
     derived activityView = pageOf(activity.data() ?? [], activityPage, 15);
+
+    const copyAddress = async (): Promise<void> =>
+    {
+        if (await copyText(session.address()))
+        {
+            toasts.push('info', t('profile.copied'), 'copy');
+            return;
+        }
+        toasts.push('error', t('toast.copyFailed'), 'alert');
+    };
 
     <section class="shell py-5">
         <div class="mx-auto max-w-5xl">
@@ -102,26 +116,21 @@ export default component Portfolio()
                 <header class="mb-5 flex flex-wrap items-center gap-3 motion-safe:animate-rise">
                     <span class="h-11 w-11 shrink-0 overflow-hidden rounded-full ring-2 ring-line sm:h-12 sm:w-12" style={ `background: ${ addressGradient(session.address()) }` } aria-hidden="true"></span>
                     <div class="min-w-0 flex-1">
-                        <h1 class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[17px] font-bold tracking-tight sm:text-xl">
-                            <span class="truncate">IntelligentQuantum</span>
-                            <Badge tone="brand" icon="verified">{ t('settings.verified') }</Badge>
-                        </h1>
-                        <p class="nums latin-nums truncate text-[12px] text-faint" dir="ltr">{ shortAddress(session.address()) } · { t('profile.joined') }</p>
+                        <h1 class="nums latin-nums text-[17px] font-bold tracking-tight sm:text-xl" dir="ltr">{ shortAddress(session.address()) }</h1>
+                        <button class="nums latin-nums max-w-full cursor-pointer truncate text-[12px] text-faint transition-colors duration-200 hover:text-text" type="button" dir="ltr" aria-label={ t('common.copy') } onClick={ () => void copyAddress() }>
+                            { session.address() }
+                        </button>
                     </div>
-                    <span class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:shrink-0">
-                        <Button variant="gold" size="sm" icon="deposit" onClick={ () => demoOnly() }>{ t('nav.deposit') }</Button>
-                        <Button variant="outline" size="sm" onClick={ () => demoOnly() }>{ t('profile.withdraw') }</Button>
-                    </span>
                 </header>
 
-                <Show when={ summary.loading() }>
+                <Show when={ summary.loading() && summary.data() === undefined }>
                     <Skeleton class="mb-5 h-40 rounded-card" />
                 </Show>
                 <Show when={ summary.data() }>
                     { (data) =>
                         <div class="mb-8">
                             <div class="mb-3 grid grid-cols-3 gap-2 motion-safe:animate-rise sm:gap-3">
-                                <StatTile label={ t('profile.positionsValue') } value={ formatMoney(data().current, lang()) } />
+                                <StatTile label={ t('profile.positionsValue') } value={ formatMoney(data().current, lang(), { compact: true }) } />
                                 <StatTile label={ t('profile.biggestWin') } value={ formatSigned(biggestWin, lang()) } tone="yes" />
                                 <StatTile label={ t('profile.predictions') } value={ String((positions.data() ?? []).length) } />
                             </div>
@@ -131,7 +140,7 @@ export default component Portfolio()
                                     <div class="min-w-0">
                                         <p class="text-[13px] text-muted">{ t('portfolio.profitLoss') }</p>
                                         <p class={ data().profit >= 0 ? 'text-2xl font-bold text-yes sm:text-3xl' : 'text-2xl font-bold text-no sm:text-3xl' }><Ticker text={ formatSigned(data().profit, lang()) } value={ data().profit } /></p>
-                                        <p class="nums mt-0.5 text-[12px] text-faint">{ formatSigned(data().profitToday, lang()) } { t('common.today') } · { t('portfolio.balance') }: { formatMoney(data().balance, lang()) }</p>
+                                        <p class="nums mt-0.5 text-[12px] text-faint">{ formatSigned(data().profitToday, lang()) } { t('common.today') } · { t('portfolio.balance') }: { formatMoney(data().balance, lang(), { compact: true }) }</p>
                                     </div>
                                     <PillGroup
                                         items={ [...PERIODS].map((entry) => ({ id: entry, label: t(`leaderboard.${ entry }`) })) }
@@ -149,6 +158,10 @@ export default component Portfolio()
                         </div>
                     }
                 </Show>
+
+                <div class="mb-8">
+                    <ClaimableList onClaimed={ () => { summary.refetch(); positions.refetch(); profitCurve.refetch(); activity.refetch(); } } />
+                </div>
 
                 <Tabs
                     tabs={ [
@@ -178,11 +191,11 @@ export default component Portfolio()
                             />
                         </div>
 
-                        <Show when={ positions.loading() || markets.loading() }>
+                        <Show when={ positions.loading() && positions.data() === undefined }>
                             <SkeletonList count={ 3 } height="h-20" radius="card" gap="md" />
                         </Show>
 
-                        <Show when={ !positions.loading() && !markets.loading() }>
+                        <Show when={ positions.data() !== undefined }>
                             <Show
                                 when={ visiblePositions.length > 0 }
                                 fallback={
@@ -199,24 +212,20 @@ export default component Portfolio()
                                     <For each={ positionsView.rows } key={ (position) => position.id }>
                                         { (position) =>
                                             <li>
-                                                <Show when={ marketOf(position.marketId) }>
-                                                    { (market) =>
-                                                        <Link to={ `/market/${ market().id }` } class={ `${ cardClass({ interactive: true, animate: 'rise' }) } flex items-center gap-3 text-text no-underline` }>
-                                                            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-overlay text-xl" aria-hidden="true">{ market().emoji }</span>
-                                                            <span class="min-w-0 flex-1">
-                                                                <span class="block truncate text-[14px] font-bold">{ text(market().title) }</span>
-                                                                <span class="mt-0.5 flex items-center gap-2 text-[12px] text-muted">
-                                                                    <Badge tone={ position.side === 'yes' ? 'yes' : 'no' }>{ position.side === 'yes' ? t('market.yes') : t('market.no') }</Badge>
-                                                                    <span class="nums">{ position.shares } × { formatPrice(position.avgPrice, lang()) }</span>
-                                                                </span>
-                                                            </span>
-                                                            <span class="text-end">
-                                                                <span class="nums block text-[15px] font-bold">{ formatMoney(valueOf(position), lang()) }</span>
-                                                                <span class={ gainOf(position) >= 0 ? 'nums block text-[12px] font-semibold text-yes' : 'nums block text-[12px] font-semibold text-no' }>{ formatSigned(gainOf(position), lang()) }</span>
-                                                            </span>
-                                                        </Link>
-                                                    }
-                                                </Show>
+                                                <Link to={ `/market/${ position.marketId }` } class={ `${ cardClass({ interactive: true, animate: 'rise' }) } flex items-center gap-3 text-text no-underline` }>
+                                                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-overlay text-xl" aria-hidden="true">{ position.market.emoji }</span>
+                                                    <span class="min-w-0 flex-1">
+                                                        <span class="block truncate text-[14px] font-bold">{ text(position.market.title) }</span>
+                                                        <span class="mt-0.5 flex items-center gap-2 text-[12px] text-muted">
+                                                            <Badge tone={ position.side === 'yes' ? 'yes' : 'no' }>{ position.side === 'yes' ? t('market.yes') : t('market.no') }</Badge>
+                                                            <span class="nums">{ formatShares(position.shares, lang()) } × { formatFillPrice(position.avgPrice, lang()) }</span>
+                                                        </span>
+                                                    </span>
+                                                    <span class="text-end">
+                                                        <span class="nums block text-[15px] font-bold">{ formatMoney(valueOf(position), lang(), { compact: true }) }</span>
+                                                        <span class={ gainOf(position) >= 0 ? 'nums block text-[12px] font-semibold text-yes' : 'nums block text-[12px] font-semibold text-no' }>{ formatSigned(gainOf(position), lang()) }</span>
+                                                    </span>
+                                                </Link>
                                             </li>
                                         }
                                     </For>
@@ -240,13 +249,11 @@ export default component Portfolio()
                                     <span class={ entry.side === 'yes' ? 'h-2 w-2 shrink-0 rounded-full bg-yes' : 'h-2 w-2 shrink-0 rounded-full bg-no' } aria-hidden="true"></span>
                                     <span class="min-w-0 flex-1 truncate">
                                         <span class="text-muted">{ entry.action === 'buy' ? t('market.bought') : t('market.sold') } </span>
-                                        <span class="nums font-semibold">{ entry.shares }</span>
+                                        <span class="nums font-semibold">{ formatShares(entry.shares, lang()) }</span>
                                         <span class={ entry.side === 'yes' ? 'font-semibold text-yes' : 'font-semibold text-no' }> { entry.side === 'yes' ? t('market.yes') : t('market.no') } </span>
-                                        <Show when={ marketOf(entry.marketId) }>
-                                            { (market) => <span class="text-muted">· { text(market().title) }</span> }
-                                        </Show>
+                                        <span class="text-muted">· { titleOf(entry.marketId) }</span>
                                     </span>
-                                    <span class="nums shrink-0 text-muted">@ { formatPrice(entry.price, lang()) }</span>
+                                    <span class="nums shrink-0 text-muted">@ { formatFillPrice(entry.price, lang()) }</span>
                                     <span class="shrink-0 text-faint">{ formatTimeAgo(entry.at, lang()) }</span>
                                 </li>
                             }

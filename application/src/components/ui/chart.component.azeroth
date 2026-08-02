@@ -45,7 +45,7 @@ export default component Chart(props: { points: SeriesPoint[]; tone?: Tone; clas
                 vector-effect="non-scaling-stroke"
                 pathLength="1"
                 style="stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 700ms var(--ease-out);"
-                ref={ (element: SVGPathElement) => { line = element; } }
+                ref={ (element) => { line = element; } }
             />
         </svg>
     </div>

@@ -1,146 +1,39 @@
-﻿import { Link, createEffect } from 'azerothjs';
+import { Link } from 'azerothjs';
 import type { Market } from '../../api.ts';
 
 import { useLocale } from '../../stores/locale.store.ts';
 
 import Icon from '../../icons/icon.component.azeroth';
 
-import Tooltip from '../ui/tooltip.component.azeroth';
+import Rail from '../ui/rail.component.azeroth';
 import HeroCard from './hero-card.component.azeroth';
 
-// The featured slider. Mobile/tablet: a swipe rail bleeding to the screen edge with the
-// next card peeking. Desktop: a contained, page-wise slider - arrows in the heading row,
-// dot indicators, exactly 3 (lg) / 4 (2xl) cards per page. Scroll math is direction-aware
-// (RTL scrollLeft runs negative) and honors prefers-reduced-motion.
+// The featured slider: the shared Rail carrying hero cards, three per page at lg and four at
+// 2xl. Everything about HOW it scrolls lives in Rail; this file only says what rides it.
 export default component FeaturedRail(props: { markets: Market[] })
 {
-    const { t, dir } = useLocale();
-
-    state page = 0;
-    state pages = 1;
-    state atStart = true;
-    state atEnd = true;
-
-    let rail: HTMLElement | null = null;
-
-    const measure = (): void =>
-    {
-        if (rail === null)
-        {
-            return;
-        }
-        const width = rail.clientWidth;
-        const total = rail.scrollWidth;
-        const position = Math.abs(rail.scrollLeft);
-        pages = width > 0 ? Math.max(1, Math.ceil((total - 4) / width)) : 1;
-        // The active dot maps scroll PROGRESS onto the dot range - never `position / width`:
-        // the last page is usually a fraction of a viewport (5 cards, 4 per view leaves 0.27),
-        // and viewport rounding pins the first dot active forever on wide screens.
-        const maxScroll = Math.max(1, total - width);
-        page = pages > 1 ? Math.min(pages - 1, Math.round((position / maxScroll) * (pages - 1))) : 0;
-        atStart = position <= 1;
-        atEnd = position >= total - width - 1;
-    };
-
-    const behavior = (): ScrollBehavior =>
-        (typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
-
-    /** +1 pages toward the reading end; RTL scroll offsets run negative. */
-    const forward = (): number => (dir() === 'rtl' ? -1 : 1);
-
-    const go = (delta: number): void =>
-    {
-        rail?.scrollBy({ left: forward() * delta * rail.clientWidth, behavior: behavior() });
-    };
-
-    const jump = (target: number): void =>
-    {
-        if (rail === null)
-        {
-            return;
-        }
-        // The inverse of measure()'s mapping, so landing on dot N always measures back to N.
-        const maxScroll = Math.max(0, rail.scrollWidth - rail.clientWidth);
-        rail.scrollTo({ left: forward() * (pages > 1 ? (target * maxScroll) / (pages - 1) : 0), behavior: behavior() });
-    };
-
-    createEffect(() =>
-    {
-        void props.markets;
-        if (typeof window === 'undefined')
-        {
-            return;
-        }
-        requestAnimationFrame(measure);
-        window.addEventListener('resize', measure);
-        return () => window.removeEventListener('resize', measure);
-    });
+    const { t } = useLocale();
 
     <section class="mb-8">
-        <div class="mb-3 flex items-center justify-between gap-2">
-            <h2 class="flex items-center gap-2 text-lg font-bold tracking-tight"><Icon name="sparkles" size={ 18 } class="text-gold" />{ t('home.featured') }</h2>
-            <div class="flex items-center gap-2">
+        <Rail
+            items={ props.markets }
+            key={ (market: Market) => market.id }
+            label={ t('home.featured') }
+            slotClass="w-[19.5rem] shrink-0 sm:w-[22rem] lg:w-[calc((100%-2rem)/3)] 2xl:w-[calc((100%-3rem)/4)]"
+            heading={
+                <h2 class="flex items-center gap-2 text-lg font-bold tracking-tight">
+                    <Icon name="sparkles" size={ 18 } class="text-gold" />
+                    { t('home.featured') }
+                </h2>
+            }
+            trailing={
                 <Link to="/browse" class="flex items-center gap-1 text-[13px] font-semibold text-brand no-underline hover:underline">
                     { t('home.viewAll') }
                     <Icon name="chevron-right" size={ 15 } />
                 </Link>
-                <div class="hidden items-center gap-1 lg:flex">
-                    <Tooltip label={ t('common.previous') }>
-                        <button
-                            class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-control border border-line text-muted transition-colors duration-200 hover:bg-overlay hover:text-text disabled:pointer-events-none disabled:opacity-40"
-                            type="button"
-                            aria-label={ t('common.previous') }
-                            disabled={ atStart }
-                            onClick={ () => go(-1) }
-                        >
-                            <Icon name="chevron-left" size={ 16 } />
-                        </button>
-                    </Tooltip>
-                    <Tooltip label={ t('common.next') }>
-                        <button
-                            class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-control border border-line text-muted transition-colors duration-200 hover:bg-overlay hover:text-text disabled:pointer-events-none disabled:opacity-40"
-                            type="button"
-                            aria-label={ t('common.next') }
-                            disabled={ atEnd }
-                            onClick={ () => go(1) }
-                        >
-                            <Icon name="chevron-right" size={ 16 } />
-                        </button>
-                    </Tooltip>
-                </div>
-            </div>
-        </div>
-
-        <div
-            class="rail rail-bleed rail-fade gap-4 pb-1 lg:[scroll-snap-type:x_mandatory]"
-            ref={ (element: HTMLElement) => { rail = element; } }
-            onScroll={ () => measure() }
+            }
         >
-            <For each={ props.markets } key={ (market) => market.id }>
-                { (market) =>
-                    <div class="w-[19.5rem] shrink-0 sm:w-[22rem] lg:w-[calc((100%-2rem)/3)] 2xl:w-[calc((100%-3rem)/4)]">
-                        <HeroCard market={ market } />
-                    </div>
-                }
-            </For>
-        </div>
-
-        <Show when={ pages > 1 }>
-            <div class="mt-3 hidden justify-center gap-1.5 lg:flex">
-                <For each={ Array.from({ length: pages }, (_item, position) => position) } key={ (position) => position }>
-                    { (position) =>
-                        <button
-                            class={ page === position
-                                ? 'h-1.5 w-5 rounded-full bg-brand transition-all duration-200'
-                                : 'h-1.5 w-1.5 cursor-pointer rounded-full bg-text/25 transition-all duration-200 hover:bg-text/45' }
-                            type="button"
-                            aria-label={ `${ t('home.featured') } ${ position + 1 }` }
-                            aria-current={ page === position ? 'true' : 'false' }
-                            onClick={ () => jump(position) }
-                        ></button>
-                    }
-                </For>
-            </div>
-        </Show>
+            { (market: Market) => <HeroCard market={ market } /> }
+        </Rail>
     </section>
 }

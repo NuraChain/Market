@@ -10,6 +10,7 @@ import MarketPage from './pages/market.page.azeroth';
 import Portfolio from './pages/portfolio.page.azeroth';
 import Leaderboard from './pages/leaderboard.page.azeroth';
 import Settings from './pages/settings.page.azeroth';
+import Admin from './pages/admin.page.azeroth';
 
 export const routes: PageRoute[] = [
     { path: '/', component: Home, render: 'client' },
@@ -17,5 +18,6 @@ export const routes: PageRoute[] = [
     { path: '/market/:id', component: MarketPage, render: 'client' },
     { path: '/portfolio', component: Portfolio, render: 'client' },
     { path: '/leaderboard', component: Leaderboard, render: 'client' },
-    { path: '/settings', component: Settings, render: 'client' }
+    { path: '/settings', component: Settings, render: 'client' },
+    { path: '/admin', component: Admin, render: 'client' }
 ];
