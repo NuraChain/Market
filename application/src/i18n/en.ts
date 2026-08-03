@@ -313,6 +313,12 @@ export const en = {
         categoryRetiredHint: 'Retired categories keep their markets and history. They just stop appearing in pickers.'
     },
     common: {
+        notFoundTitle: 'This page does not exist',
+        notFoundBody: 'The link may be broken, or the market may have been removed. Try browsing the open markets instead.',
+        notFoundCta: 'Browse markets',
+        errorTitle: 'This page stopped working',
+        errorBody: 'Something failed while rendering. Your funds and positions are unaffected - retrying usually clears it.',
+        backHome: 'Back to home',
         loading: 'Loading',
         error: 'Something went wrong',
         retry: 'Try again',

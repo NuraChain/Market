@@ -1,7 +1,10 @@
-import { RouterProvider, Routes, createRouter, createMemoryHistory } from 'azerothjs';
+import { ErrorBoundary, RouterProvider, Routes, createRouter, createMemoryHistory } from 'azerothjs';
 import type { LoaderHandoff } from 'azerothjs';
 
 import { routes } from './routes.ts';
+
+import ErrorPage from './pages/error.page.azeroth';
+import NotFoundPage from './pages/not-found.page.azeroth';
 
 import Header from './components/layout/header.component.azeroth';
 import Footer from './components/layout/footer.component.azeroth';
@@ -29,7 +32,11 @@ export default component App(props: { url?: string; handoff?: LoaderHandoff })
                 <div class="flex min-h-full flex-col">
                     <Header />
                     <main class="flex-1 pb-6">
-                        <Routes fallback={ () => <h1 class="p-8 text-center text-muted">404</h1> } />
+                        {/* Inside the boundary: a page that throws swaps in the error page
+                            instead of unmounting the tree to a blank screen. */}
+                        <ErrorBoundary fallback={ (_error, reset) => <ErrorPage reset={ reset } /> }>
+                            <Routes fallback={ () => <NotFoundPage /> } />
+                        </ErrorBoundary>
                     </main>
                     <Footer />
                 </div>
