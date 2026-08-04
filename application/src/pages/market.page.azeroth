@@ -93,17 +93,25 @@ export default component MarketPage()
 
     // Both lists page on the SERVER, so the page rides the source key: changing it refetches
     // that window instead of re-slicing a fixed prefix the server happened to send.
+    //
+    // The `marketId !== undefined` half is not belt-and-braces. Navigating AWAY clears the route
+    // param while these resources are still live, and interpolating an absent param into a
+    // template literal yields the STRING "undefined" - a perfectly non-empty source key. That
+    // fetched `/api/markets/undefined/activity` on every departure: a guaranteed 404 and a red
+    // console error. A source of `false` is how a resource says "nothing to fetch".
+    derived marketId = params()['id'];
+
     resource activity = (key: string) =>
     {
         const [id = '', page = '1'] = key.split('|');
         return client.markets.activity({ params: { id }, query: { page: Number(page), limit: PAGE_SIZE } });
-    } with { source: tab === 'activity' ? `${ params()['id'] }|${ activityPage }` : false };
+    } with { source: tab === 'activity' && marketId !== undefined ? `${ marketId }|${ activityPage }` : false };
 
     resource holders = (key: string) =>
     {
         const [id = '', page = '1'] = key.split('|');
         return client.markets.holders({ params: { id }, query: { page: Number(page), limit: PAGE_SIZE } });
-    } with { source: tab === 'holders' ? `${ params()['id'] }|${ holdersPage }` : false };
+    } with { source: tab === 'holders' && marketId !== undefined ? `${ marketId }|${ holdersPage }` : false };
 
     resource relatedPage = (key: string) =>
     {
