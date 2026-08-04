@@ -66,7 +66,24 @@ export default component Footer()
             </div>
 
             <div class="mt-8 border-t border-line pt-5">
-                <p class="mb-2 text-[13px] text-muted">{ t('footer.rights') }</p>
+                <div class="mb-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-1">
+                    <p class="text-[13px] text-muted">{ t('footer.rights') }</p>
+                    {/* The credit carries a LINK rather than living inside the translated
+                        `rights` string: a name embedded in prose cannot be clicked, and it
+                        would have to be re-embedded correctly in every language added later. */}
+                    <p class="shrink-0 text-[13px] text-muted">
+                        {/* The explicit space is load-bearing: markup joins two TEXT lines with
+                            one space, but drops the newline between an expression hole and the
+                            element after it - so this reads "Built withAzerothJS" without it. */}
+                        { t('footer.builtWith') }{ ' ' }
+                        <a
+                            class="text-muted no-underline transition-colors duration-200 hover:text-text"
+                            href="https://github.com/AzerothJS/AzerothJS"
+                            target="_blank"
+                            rel="noreferrer"
+                        ><span dir="ltr">AzerothJS</span></a>
+                    </p>
+                </div>
                 <p class="text-[12px] leading-relaxed text-faint">{ t('footer.disclaimer') }</p>
             </div>
         </div>

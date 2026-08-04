@@ -168,7 +168,8 @@ export const en = {
         community: 'Community',
         contact: 'Contact',
         disclaimer: 'AuctionHouse is a design-phase prediction market interface. Markets shown are simulated and nothing here is financial advice.',
-        rights: '© 2026 AuctionHouse · Open source, built on AzerothJS'
+        rights: '© 2026 AuctionHouse · Open source',
+        builtWith: 'Built with'
     },
     chain: {
         submitted: 'Transaction submitted',

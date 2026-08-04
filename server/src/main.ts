@@ -52,6 +52,13 @@ const treasury = await (async () =>
             if (attempt === 1)
             {
                 log.warn('chain unreachable, retrying', { rpc: chainEnv.rpcUrl });
+                // ALSO to stdout, deliberately. This wait happens BEFORE the port is bound, so
+                // to anyone at a terminal the process looks hung - and the log goes to a file
+                // they have no reason to be tailing yet. A boot that blocks has to say why.
+                process.stdout.write(
+                    `\n  Waiting for the chain at ${ chainEnv.rpcUrl } ...\n`
+                    + '  Start it with `npm run chain`, then `npm run seed` to deploy. Giving up after 2 minutes.\n\n'
+                );
             }
             if (attempt >= 60)
             {
