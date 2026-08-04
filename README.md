@@ -4,12 +4,14 @@
 
 **Trade on what happens next.**
 
-A modern, bilingual prediction-market platform: emerald and gold on ink, native on
-mobile and native on desktop, English and Persian as equals.
+An open-source prediction market: people buy and sell shares in real-world outcomes, prices read
+as probabilities, and markets settle on chain. Bilingual English and Persian, native on mobile
+and on desktop.
 
-[![Built with AzerothJS](https://img.shields.io/badge/built%20with-AzerothJS-10B981)](https://github.com/AzerothJS/AzerothJS)
+[![CI](https://github.com/NuraChain/Market/actions/workflows/ci.yml/badge.svg)](https://github.com/NuraChain/Market/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-F5B94A)](LICENSE)
-[![Node >= 22](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org)
+[![Node >= 24](https://img.shields.io/badge/node-%3E%3D24-brightgreen)](https://nodejs.org)
+[![Built with AzerothJS](https://img.shields.io/badge/built%20with-AzerothJS-10B981)](https://github.com/AzerothJS/AzerothJS)
 
 <img src="docs/screenshots/home-desktop-dark.png" alt="AuctionHouse home, dark theme" width="840" />
 
@@ -17,71 +19,143 @@ mobile and native on desktop, English and Persian as equals.
 
 ---
 
-## What this is
+## What it is
 
-AuctionHouse is a prediction-market product in the Polymarket category, designed and
-built from scratch with its own identity (the **Ledger** design system) and a fullstack
-shape: compiled `.azeroth` components on the client, an `@azerothjs/http` server, and one
-typed API declaration between them. This phase ships the complete UI/UX against a seeded
-mock API; the real backend replaces one data module and nothing above it moves.
+A share in an outcome costs between 0c and 100c, and its price is the market's estimate of the
+odds: a share trading at 34c means the market gives that outcome a 34% chance. Buy it, and if the
+outcome happens the share settles at 100c.
+
+Trades and settlement happen on chain through a browser wallet. The server owns what a chain
+should not: market metadata, uploaded images, and the read models the pages are built from. The
+admin console creates, pauses and resolves markets against the deployed contracts.
+
+> **Status:** working software, not yet battle-tested at scale. The contracts have a test suite
+> and the money rules below are enforced server-side, but this has not been audited. Run it on a
+> testnet before it holds anything you would miss.
+
+<div align="center">
 
 | | |
 | --- | --- |
 | <img src="docs/screenshots/market-desktop-dark.png" alt="Market detail with live chart and trade ticket" /> | <img src="docs/screenshots/home-desktop-light.png" alt="Home in the light theme" /> |
-| <img src="docs/screenshots/trade-sheet-mobile.png" alt="Mobile trade sheet" width="390" /> | <img src="docs/screenshots/market-mobile-fa.png" alt="Persian RTL market page" width="390" /> |
+| <img src="docs/screenshots/browse-mobile-dark.png" alt="Browsing markets on mobile" width="390" /> | <img src="docs/screenshots/market-mobile-fa.png" alt="Persian RTL market page" width="390" /> |
 
-## The product decisions
+</div>
 
-- **Dark first, light complete.** Two full parallel color scales, flipped by one
-  `data-theme` attribute. Light is a first-class theme, never a derived tint.
-- **English and Persian as equals.** RTL is a first-class layout (logical properties
-  everywhere), Persian gets Vazirmatn, Persian-Arabic digits, Toman amounts with real
-  scale words, and Jalali dates. Charts keep Latin digits in both languages, on purpose.
-- **One number module.** Every price, volume, percentage, and date renders through
-  `src/i18n/format.ts`. Persian-digit bugs die in its unit tests, not in production.
-- **Native on both form factors.** Mobile gets a bottom tab bar, bottom sheets with drag
-  handles, a sticky trade bar, and 44px targets. Desktop gets hover, density, a sticky
-  right-column trade ticket, and keyboard paths. One component, two presentations.
+## Features
 
-## UX defects we fix (that the reference category has)
+- **Prices that read as odds.** Full-height outcome buttons carry their own price, and one
+  convention holds everywhere: 34c means a 34% chance, said in plain words on the market page.
+- **English and Persian as equals.** RTL is a first-class layout built on logical properties, with
+  Vazirmatn, Persian-Arabic digits, Toman amounts with real scale words, and Jalali dates. The
+  second language is native product copy, not a translation gloss.
+- **Native on both form factors.** Mobile gets a bottom tab bar, drag-handled sheets, a sticky
+  trade bar and 44px targets. Desktop gets hover, density, a sticky trade ticket and keyboard
+  paths. One component, two presentations - not a scaled-down desktop.
+- **Dark first, light complete.** Two full parallel colour scales flipped by one `data-theme`
+  attribute. Light is a first-class theme, never a derived tint.
+- **Accessible by construction.** WCAG AA contrast in both themes, visible focus rings, and
+  YES/NO that always travel with an icon and a label - never colour alone.
+- **Designed empty and error states.** Every empty list carries a next action, and a render that
+  throws swaps in a recoverable page instead of a blank screen.
+- **Search that works in both languages**, instantly, from either keyboard.
+- **On-chain settlement** with an admin console for creating, pausing and resolving markets.
 
-1. **Stacked-modal chaos** - one auth surface, ever. Google, email, and wallet live on a
-   single sheet; nothing ever opens on top of it.
-2. **Tiny Yes/No chips** - full-height outcome buttons with the price on the button.
-3. **Cents-vs-percent confusion** - one dual convention everywhere: a 34c share means a
-   34% chance, and the market page says so in plain words.
-4. **Two cramped nav rows** - one scrollable category rail; global nav lives in the
-   header and the tab bar.
-5. **Shrunk-desktop mobile web** - a real mobile IA instead of a scaled-down desktop.
-6. **Plain-text empty states** - every empty state is designed and carries a next action.
-7. **Color-only semantics** - YES/NO always travel with an icon and a label; visible
-   focus rings; WCAG AA contrast in both themes.
-8. **No i18n** - see above; the second language is not a translation gloss, it is native
-   product copy.
-9. **Buried resolution dates** - every card carries its resolve date and volume.
-10. **Search as an afterthought** - browse searches both languages instantly, from either
-    keyboard.
+## Quick start
 
-## Stack
-
-- **[AzerothJS](https://github.com/AzerothJS/AzerothJS)** - compiled `.azeroth`
-  components, fine-grained reactivity, no virtual DOM; `@azerothjs/http` server;
-  `@azerothjs/schema` validation; one typed API client inferred from the server's own
-  declaration.
-- **Tailwind CSS v4** over the Ledger token system (CSS custom properties; the tokens are
-  the single source of color, radius, and motion).
-- **lucide** icon data rendered through one `<Icon>` component with an RTL mirror list.
-- **Self-hosted fonts**: Inter Variable and Vazirmatn Variable. No CDN.
-
-## Getting started
+Requires **Node >= 24** and a browser wallet for the trading flows.
 
 ```sh
 npm install
-npm run dev
+cp server/.env.example server/.env
+
+npm run chain          # a local EVM node on :8545 (leave it running)
+npm run seed           # deploy the contracts and open a few markets
+npm run dev            # the app
 ```
 
-One command runs both halves: the API server on **:3000**, vite on **:5173** with `/api`
-proxied. Open http://localhost:5173.
+`npm run dev` runs both halves: the API server on **:3000**, vite on **:5173** with `/api`
+proxied. Open <http://localhost:5173>.
+
+Point your wallet at the local chain (chain id `31337`, RPC `http://127.0.0.1:8545`) and import
+one of the node's funded test accounts to trade. Without `npm run chain` the pages render but
+every trade fails - there is nothing to trade against.
+
+## Configuration
+
+Copy `server/.env.example` to `server/.env`. Every key the server reads is listed there; keep the
+two files in step.
+
+| Key | Default | What it does |
+| --- | --- | --- |
+| `PORT` | `3000` | Server port |
+| `NODE_ENV` | `development` | `production` serves the built client |
+| `CLIENT_DIR` | `../application/dist` | Built client, served from the same origin |
+| `SSR_ENTRY` | `../application/dist-server/entry.server.js` | SSR bundle |
+| `UPLOAD_DIR` | `uploads` | Where market and outcome images are written |
+
+## Deployment
+
+```sh
+npm run build
+NODE_ENV=production npm start
+```
+
+One process serves the API and the built client on one origin, so there is no CORS to configure.
+Put a reverse proxy in front for TLS.
+
+In a container - build from the repository root, where the workspace lockfile lives:
+
+```sh
+docker build -f server/Dockerfile -t auctionhouse .
+docker run -p 3000:3000 --env-file server/.env -v auctionhouse-uploads:/app/uploads auctionhouse
+```
+
+Before running it for real:
+
+- **`UPLOAD_DIR` must survive a deploy.** Market images live on disk, not in the database. Mount a
+  volume, or they 404 after the next release.
+- **Contract addresses are build-time input.** Re-deploying the contracts means re-exporting the
+  ABIs (`npm run contracts:abis`) and rebuilding the client.
+- **The admin console is key-gated.** Whoever holds the admin key can resolve markets, which
+  decides who gets paid. Treat it as a production credential.
+
+## Architecture
+
+Compiled `.azeroth` components on the client, an `@azerothjs/http` server, and **one typed API
+declaration between them** - the browser's client is inferred from the server's own route
+declarations, so a handler and its caller cannot drift.
+
+Two rules to know before touching anything:
+
+- **One number module.** Every price, volume, percentage and date renders through
+  `application/src/i18n/format.ts`. Persian-digit bugs die in its unit tests, not in production.
+- **Tokens are the source of truth for style.** Colour, radius and motion live in
+  `application/src/styles/tokens.css`. Components consume tokens; they never invent values.
+
+```
+application/            the web client (vite + azeroth compiler + tailwind)
+  src/styles/           tokens.css (the Ledger design system), base.css
+  src/i18n/             en.ts, fa.ts, locale store, format.ts (THE number module)
+  src/icons/            Icon component + lucide registry + RTL mirror list
+  src/components/ui/    Button, Chip, Badge, Input, Tabs, Sheet, Skeleton,
+                        Chart, ChanceRing, Ticker
+  src/components/       layout/ (Header, TabBar, Footer, sheets)  market/ (cards, ticket)
+  src/pages/            home, market, browse, portfolio, leaderboard, settings,
+                        not-found, error
+  src/routes.ts         ONE route table; per-route render mode
+server/                 @azerothjs/http - the declared API
+  src/schemas.ts        the wire vocabulary (client-safe)
+  src/app.ts            feature() declarations: markets, portfolio, leaderboard, admin
+  src/derive.ts         the read models the pages are built from
+  src/uploads.ts        market and outcome images (writes to UPLOAD_DIR)
+contracts/              the Solidity, its tests, and the deploy + seed scripts
+  src/                  the market contracts
+  scripts/              deploy, seed, export-abis
+  deployments/          addresses per network
+```
+
+## Development
 
 | Script | What it does |
 | --- | --- |
@@ -89,24 +163,47 @@ proxied. Open http://localhost:5173.
 | `npm run check` | Type-check (azeroth-tsc + tsc) and lint, both workspaces |
 | `npm test` | Unit and component tests (vitest, happy-dom) |
 | `npm run build` | Client bundle + SSR bundle + prerender |
+| `npm start` | Run the built app (set `NODE_ENV=production`) |
+| `npm run chain` | A local EVM node on :8545 |
+| `npm run seed` | Deploy the contracts and open sample markets |
+| `npm run contracts:compile` | Compile the Solidity |
+| `npm run contracts:test` | The contract test suite |
+| `npm run contracts:deploy:local` | Deploy to the running local chain |
+| `npm run contracts:abis` | Export ABIs into the client |
 
-## Project structure
+## Contributing
 
+Issues and pull requests are welcome. For anything larger than a fix, open an issue first so the
+approach can be agreed before you spend the time.
+
+Before opening a pull request, both gates must pass:
+
+```sh
+npm run check
+npm test
 ```
-application/            the web client (vite + azeroth compiler + tailwind)
-  src/styles/           tokens.css (the Ledger system), base.css
-  src/i18n/             en.ts, fa.ts, locale store, format.ts (THE number module)
-  src/icons/            Icon component + lucide registry + RTL mirror list
-  src/components/ui/    Button, Chip, Badge, Input, Tabs, Sheet, Skeleton,
-                        Chart, ChanceRing, Ticker
-  src/components/       layout/ (Header, TabBar, Footer, sheets)  market/ (cards, ticket)
-  src/pages/            home, market, browse, portfolio, leaderboard, settings
-  src/routes.ts         ONE route table; per-route render mode
-server/                 @azerothjs/http - the declared API over seeded mock data
-  src/schemas.ts        the wire vocabulary (client-safe)
-  src/data.ts           the deterministic mock world (what a real backend replaces)
-  src/app.ts            feature() declarations: markets, portfolio, leaderboard
-```
+
+House style is enforced by the linter and visible in any neighbouring file: Allman braces, one
+import per module, and comments that state a constraint the code cannot show rather than
+narrating what changed.
+
+- **Adding a page:** one row in `application/src/routes.ts` plus its `*.page.azeroth` component.
+- **Adding a component:** shared UI goes in `components/ui/` and consumes tokens, never raw values.
+- **Adding user-facing copy:** it goes in `src/i18n/en.ts` **and** `src/i18n/fa.ts`. An inline
+  string in a component is a review comment.
+
+## Security
+
+**Do not open a public issue for a security bug.** Report it privately to the maintainer so a fix
+can ship before the details are public.
+
+The money rules are enforced on the server, not in the UI, and are the right place to start if you
+are reviewing:
+
+- The charged amount comes from the stored row, never from the request.
+- Settlement is idempotent - a paid position cannot be paid twice.
+- A resolved market cannot be resolved again.
+- Admin routes are key-gated, and that key decides who gets paid.
 
 ## License
 

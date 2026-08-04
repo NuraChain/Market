@@ -10,32 +10,32 @@ import * as Contracts from "./index.js";
 
 declare module "@nomicfoundation/hardhat-ethers/types" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
-  getContractFactory(name: 'PredictionMarket', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.PredictionMarket__factory>
-getContractFactory(name: 'PredictionFactory', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.PredictionFactory__factory>
+  getContractFactory(name: 'PredictionFactory', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.PredictionFactory__factory>
+getContractFactory(name: 'PredictionMarket', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.PredictionMarket__factory>
 getContractFactory(name: 'PredictionTreasury', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.PredictionTreasury__factory>
 getContractFactory(name: 'IPredictionFactory', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IPredictionFactory__factory>
 getContractFactory(name: 'IPredictionMarket', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IPredictionMarket__factory>
 getContractFactory(name: 'IPredictionTreasury', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IPredictionTreasury__factory>
 getContractFactory(name: 'ReentrantBuyer', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.ReentrantBuyer__factory>
 
-  getContractAt(name: 'PredictionMarket', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.PredictionMarket>
-getContractAt(name: 'PredictionFactory', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.PredictionFactory>
+  getContractAt(name: 'PredictionFactory', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.PredictionFactory>
+getContractAt(name: 'PredictionMarket', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.PredictionMarket>
 getContractAt(name: 'PredictionTreasury', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.PredictionTreasury>
 getContractAt(name: 'IPredictionFactory', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IPredictionFactory>
 getContractAt(name: 'IPredictionMarket', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IPredictionMarket>
 getContractAt(name: 'IPredictionTreasury', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IPredictionTreasury>
 getContractAt(name: 'ReentrantBuyer', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.ReentrantBuyer>
 
-  deployContract(name: 'PredictionMarket', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.PredictionMarket>
-deployContract(name: 'PredictionFactory', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.PredictionFactory>
+  deployContract(name: 'PredictionFactory', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.PredictionFactory>
+deployContract(name: 'PredictionMarket', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.PredictionMarket>
 deployContract(name: 'PredictionTreasury', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.PredictionTreasury>
 deployContract(name: 'IPredictionFactory', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IPredictionFactory>
 deployContract(name: 'IPredictionMarket', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IPredictionMarket>
 deployContract(name: 'IPredictionTreasury', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IPredictionTreasury>
 deployContract(name: 'ReentrantBuyer', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ReentrantBuyer>
 
-  deployContract(name: 'PredictionMarket', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.PredictionMarket>
-deployContract(name: 'PredictionFactory', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.PredictionFactory>
+  deployContract(name: 'PredictionFactory', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.PredictionFactory>
+deployContract(name: 'PredictionMarket', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.PredictionMarket>
 deployContract(name: 'PredictionTreasury', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.PredictionTreasury>
 deployContract(name: 'IPredictionFactory', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IPredictionFactory>
 deployContract(name: 'IPredictionMarket', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IPredictionMarket>
