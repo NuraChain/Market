@@ -32,8 +32,7 @@ export default component ActivityFeed()
 
         <Show when={ feed.length > 0 }>
             <div><ul class="flex flex-col">
-                    <For each={ feed } key={ (entry) => entry.id }>
-                    { (entry) =>
+                    <For each={ feed } key={ (entry) => entry.id } let={ entry }>
                         <li class="flex items-center gap-2.5 border-b border-line py-2.5 text-[12.5px] last:border-b-0">
                             <span class={ entry.action === 'buy' ? 'text-yes' : 'text-no' } aria-hidden="true">
                                 <Icon name={ entry.action === 'buy' ? 'trending-up' : 'trending-down' } size={ 15 } />
@@ -47,7 +46,6 @@ export default component ActivityFeed()
                             <span class="nums shrink-0 text-muted">{ formatMoney(entry.shares * entry.price, lang(), { compact: true }) }</span>
                             <span class="shrink-0 text-faint">{ formatTimeAgo(entry.at, lang()) }</span>
                         </li>
-                    }
                     </For>
                 </ul>
                 <div class="mt-4">

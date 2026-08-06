@@ -96,32 +96,28 @@ export default component ResolveDialog(props: {
                 <SkeletonList count={ 2 } height="h-12" radius="control" />
             </Show>
 
-            <Show when={ detail.data() }>
-                { (data) =>
-                    <ul class="flex flex-col gap-2" role="radiogroup" aria-label={ t('admin.outcomes') }>
-                        <For each={ data().outcomes } key={ (outcome) => outcome.label.en }>
-                            { (outcome, index) =>
-                                <li>
-                                    <button
-                                        class={ picked === index
+            <Show when={ detail.data() } let={ data }>
+                <ul class="flex flex-col gap-2" role="radiogroup" aria-label={ t('admin.outcomes') }>
+                    <For each={ data.outcomes } key={ (outcome) => outcome.label.en } let={ outcome } index={ index }>
+                        <li>
+                            <button
+                                class={ picked === index
                                             ? 'flex h-12 w-full cursor-pointer items-center gap-3 rounded-control border border-brand bg-brand-soft px-3 text-[14px] font-semibold text-text'
                                             : 'flex h-12 w-full cursor-pointer items-center gap-3 rounded-control border border-line bg-raised px-3 text-[14px] font-semibold text-muted transition-colors duration-200 hover:border-line-strong hover:text-text' }
-                                        type="button"
-                                        role="radio"
-                                        aria-checked={ picked === index ? 'true' : 'false' }
-                                        onClick={ () => { picked = index; arming = 'none'; } }
-                                    >
-                                        <span class="min-w-0 flex-1 truncate text-start">{ text(outcome.label) }</span>
-                                        <span class="nums latin-nums text-[13px] text-faint" dir="ltr">{ formatOdds(Number(outcome.price) / 1e18, lang(), oddsMode()) }</span>
-                                        <Show when={ picked === index }>
-                                            <Icon name="circle-check" size={ 17 } class="text-brand" />
-                                        </Show>
-                                    </button>
-                                </li>
-                            }
-                        </For>
-                    </ul>
-                }
+                                type="button"
+                                role="radio"
+                                aria-checked={ picked === index ? 'true' : 'false' }
+                                onClick={ () => { picked = index; arming = 'none'; } }
+                            >
+                                <span class="min-w-0 flex-1 truncate text-start">{ text(outcome.label) }</span>
+                                <span class="nums latin-nums text-[13px] text-faint" dir="ltr">{ formatOdds(Number(outcome.price) / 1e18, lang(), oddsMode()) }</span>
+                                <Show when={ picked === index }>
+                                    <Icon name="circle-check" size={ 17 } class="text-brand" />
+                                </Show>
+                            </button>
+                        </li>
+                    </For>
+                </ul>
             </Show>
 
             <Show

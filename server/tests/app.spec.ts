@@ -2,9 +2,11 @@
 // portfolio math, the signed admin feature toggle. What the browser client actually gets.
 import { describe, it, expect } from 'vitest';
 import { privateKeyToAccount } from 'viem/accounts';
+import { verifyMessage } from 'viem';
 
 import { buildApp } from '../src/app.ts';
-import { categoryMessage, featureMessage, type Market, type MarketPage, type PortfolioSummary, type Position } from '../src/schemas.ts';
+import { createAdminSession } from '../src/admin-session.ts';
+import { categoryMessage, featureMessage, sessionMessage, type Market, type MarketPage, type PortfolioSummary, type Position } from '../src/schemas.ts';
 import { IndexStore } from '../src/chain/store.ts';
 import type { ChainGateway } from '../src/chain/client.ts';
 
@@ -98,13 +100,47 @@ const gateway: ChainGateway = {
 
 const store = seededStore();
 store.setCursor(42);
-const app = buildApp({ dev: false, store, chain: gateway, treasury: '0x5FbDB2315678afecb367f032d93F642f64180aa3' });
-const get = (path: string): Promise<Response> => app.handle(new Request(`http://local${ path }`));
-const post = (path: string, body: unknown): Promise<Response> => app.handle(new Request(`http://local${ path }`, {
+// The admin surface is behind a session, so the suite builds one exactly as production
+// does: the wallet signs a nonce, the chain confirms the role. Reading the console with no
+// cookie is a 401, which is what the guard exists to make true.
+const adminSession = createAdminSession({
+    secureCookie: false,
+    async verify(address, message, signature)
+    {
+        const signed = await verifyMessage({
+            address: address as `0x${ string }`,
+            message,
+            signature: signature as `0x${ string }`
+        }).catch(() => false);
+        return signed ? gateway.hasAdminRole(address as `0x${ string }`) : false;
+    }
+});
+
+const app = buildApp({ dev: false, store, chain: gateway, treasury: '0x5FbDB2315678afecb367f032d93F642f64180aa3', adminSession });
+const get = (path: string, cookie?: string): Promise<Response> => app.handle(new Request(`http://local${ path }`, {
+    headers: cookie === undefined ? {} : { cookie }
+}));
+const post = (path: string, body: unknown, cookie?: string): Promise<Response> => app.handle(new Request(`http://local${ path }`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: cookie === undefined
+        ? { 'content-type': 'application/json' }
+        : { 'content-type': 'application/json', cookie },
     body: JSON.stringify(body)
 }));
+
+/** Opens a real admin session and returns the Cookie header to replay. */
+async function signIn(account = ADMIN): Promise<string>
+{
+    const issuedAt = new Date().toISOString();
+    const response = await post('/api/admin/session', {
+        address: account.address,
+        issuedAt,
+        signature: await account.signMessage({ message: sessionMessage(issuedAt) })
+    });
+    expect(response.status).toBe(204);
+    const setCookie = response.headers.get('set-cookie') ?? '';
+    return setCookie.split(';')[0] ?? '';
+}
 
 describe('auctionhouse api over the index', () =>
 {
@@ -237,12 +273,50 @@ describe('auctionhouse api over the index', () =>
         expect(rows[0]?.profit).toBeCloseTo(11.4, 1);
     });
 
-    it('admin stats aggregate the whole index', async () =>
+    it('admin stats aggregate the whole index, for a signed-in admin', async () =>
     {
-        const stats = (await (await get('/api/admin/stats')).json()) as { markets: number; resolved: number; tvl: number };
+        const cookie = await signIn();
+        const stats = (await (await get('/api/admin/stats', cookie)).json()) as { markets: number; resolved: number; tvl: number };
         expect(stats.markets).toBe(2);
         expect(stats.resolved).toBe(1);
         expect(stats.tvl).toBeCloseTo(164.75, 2);
+    });
+
+    it('EVERY admin route refuses an anonymous caller - the guard is on the feature', async () =>
+    {
+        // The console's reads used to be open: /admin/stats returned fees, TVL and trader
+        // counts to anyone who asked. They are guarded now because of the feature they
+        // land in, so a route added later inherits the refusal instead of needing a line.
+        for (const path of ['/api/admin/stats', '/api/admin/activity', '/api/admin/markets'])
+        {
+            expect((await get(path)).status, `${ path } must refuse an anonymous caller`).toBe(401);
+        }
+        const toggle = await post('/api/admin/feature', { marketId: '1', featured: true, address: ADMIN.address, issuedAt: new Date().toISOString(), signature: '0xdead' });
+        expect(toggle.status).toBe(401);
+    });
+
+    it('refuses a session to a stranger, and to a bad signature from a real admin', async () =>
+    {
+        const issuedAt = new Date().toISOString();
+        const stranger = await post('/api/admin/session', {
+            address: STRANGER.address,
+            issuedAt,
+            signature: await STRANGER.signMessage({ message: sessionMessage(issuedAt) })
+        });
+        expect(stranger.status).toBe(401);
+
+        const forged = await post('/api/admin/session', { address: ADMIN.address, issuedAt, signature: '0xdead' });
+        expect(forged.status).toBe(401);
+    });
+
+    it('signing out ends the session it was issued for', async () =>
+    {
+        const cookie = await signIn();
+        expect((await get('/api/admin/stats', cookie)).status).toBe(200);
+
+        const out = await app.handle(new Request('http://local/api/admin/session', { method: 'DELETE', headers: { cookie } }));
+        expect(out.status).toBe(204);
+        expect((await get('/api/admin/stats', cookie)).status).toBe(401);
     });
 
     it('feature toggle demands a fresh signature from a real admin', async () =>
@@ -250,13 +324,14 @@ describe('auctionhouse api over the index', () =>
         const issuedAt = new Date().toISOString();
         const message = featureMessage('1', true, issuedAt);
 
+        const cookie = await signIn();
         const signed = await post('/api/admin/feature', {
             marketId: '1',
             featured: true,
             address: ADMIN.address,
             issuedAt,
             signature: await ADMIN.signMessage({ message })
-        });
+        }, cookie);
         expect(signed.status).toBe(200);
         expect(store.marketById(1)?.featured).toBe(1);
 
@@ -266,7 +341,7 @@ describe('auctionhouse api over the index', () =>
             address: STRANGER.address,
             issuedAt,
             signature: await STRANGER.signMessage({ message: featureMessage('1', false, issuedAt) })
-        });
+        }, cookie);
         expect(stranger.status).toBe(403);
 
         const stale = new Date(Date.now() - 10 * 60_000).toISOString();
@@ -276,7 +351,7 @@ describe('auctionhouse api over the index', () =>
             address: ADMIN.address,
             issuedAt: stale,
             signature: await ADMIN.signMessage({ message: featureMessage('1', false, stale) })
-        });
+        }, cookie);
         expect(old.status).toBe(400);
 
         const forged = await post('/api/admin/feature', {
@@ -285,7 +360,7 @@ describe('auctionhouse api over the index', () =>
             address: ADMIN.address,
             issuedAt,
             signature: await STRANGER.signMessage({ message: featureMessage('1', false, issuedAt) })
-        });
+        }, cookie);
         expect(forged.status).toBe(403);
     });
 

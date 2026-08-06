@@ -3,10 +3,12 @@ import { pathToFileURL } from 'node:url';
 import { pipeline, requestId, securityHeaders, rateLimit, logRequests, loadConfig, num, oneOf, str } from '@azerothjs/http';
 import { serve, handleShutdownSignals } from '@azerothjs/http/node';
 import type { PageRenderer, PageRoute } from '@azerothjs/kit';
-import { createLogger } from '@azerothjs/logger';
-import { fileStream } from '@azerothjs/logger/node';
+import { createLogger, teeSink, terminalSink } from '@azerothjs/logger';
+import { fileSink } from '@azerothjs/logger/node';
+import { verifyMessage, type Address } from 'viem';
 
 import { buildApp } from './app.ts';
+import { createAdminSession } from './admin-session.ts';
 import { diskUploader } from './uploads.ts';
 import { ChainReader, loadChainEnv } from './chain/client.ts';
 import { IndexStore } from './chain/store.ts';
@@ -30,7 +32,11 @@ const config = loadConfig({
 });
 const isProduction = config.env === 'production';
 
-const log = createLogger({ stream: fileStream('logs/'), fields: { service: 'auctionhouse-server' } });
+// Pretty lines on the terminal, clean NDJSON in server/logs/ - both, in every mode.
+const log = createLogger({
+    sink: teeSink(terminalSink(), fileSink(new URL('../logs/', import.meta.url))),
+    fields: { service: 'auctionhouse-server' }
+});
 
 // The indexer half: the chain env, the sqlite index, and the watcher that keeps it fresh.
 // The RPC may come up after us (the runbook starts everything together), so the first
@@ -78,6 +84,22 @@ const ssr = isProduction
     ? await import(pathToFileURL(config.ssrEntry).href) as { routes: PageRoute[]; renderPage: PageRenderer }
     : undefined;
 
+// One signature opens an admin session; the cookie carries it from there. Verification is
+// the same pair the mutations use - the wallet proves the address, the chain proves the role -
+// so there is one definition of "is an admin" rather than a session-shaped second one.
+const adminSession = createAdminSession({
+    secureCookie: isProduction,
+    async verify(address, message, signature)
+    {
+        const signed = await verifyMessage({
+            address: address as Address,
+            message,
+            signature: signature as `0x${ string }`
+        }).catch(() => false);
+        return signed ? chain.hasAdminRole(address as Address) : false;
+    }
+});
+
 const app = buildApp({
     dev: !isProduction,
     observe: logRequests(log),
@@ -86,6 +108,7 @@ const app = buildApp({
     treasury,
     uploader: diskUploader(config.uploadDir),
     uploadDir: config.uploadDir,
+    adminSession,
     pages: ssr === undefined ? undefined : { routes: ssr.routes, clientDir: config.clientDir, renderer: ssr.renderPage }
 });
 
@@ -115,10 +138,20 @@ served.server.on('close', () =>
 // `azeroth dev` sets NODE_ENV=development, so `npm run dev` gets the panel.
 if (process.env.NODE_ENV === 'development')
 {
-    const { attachDevtools } = await import('@azerothjs/devtools/server');
-    const token = crypto.randomUUID();
-    attachDevtools(served.server, { token });
-    log.info('devtools bridge', { url: `ws://localhost:${ served.port }/__azeroth/devtools?token=${ token }` });
+    // The token is read, never minted. A dev server restarts on every file save, so a
+    // per-boot secret would differ each time and the panel - which remembers the URL you
+    // gave it - would 403 from your first edit onward. .env outlives the process.
+    const token = process.env.DEVTOOLS_TOKEN;
+    if (token === undefined || token.length < 16)
+    {
+        log.warn('devtools bridge off - set DEVTOOLS_TOKEN in server/.env (16+ chars) to enable it');
+    }
+    else
+    {
+        const { attachDevtools } = await import('@azerothjs/devtools/server');
+        attachDevtools(served.server, { token });
+        log.info('devtools bridge', { url: `ws://localhost:${ served.port }/__azeroth/devtools?token=${ token }` });
+    }
 }
 
-log.info('Listening', { port: served.port, env: config.env });
+log.info('Listening', { url: `http://localhost:${ served.port }`, env: config.env });

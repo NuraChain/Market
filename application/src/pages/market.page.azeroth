@@ -153,202 +153,192 @@ export default component MarketPage()
             </div>
         </Show>
 
-        <Show when={ market.data() }>
-            { (data) =>
-                <Show when={ outcome }>
-                    { (lead) =>
-                        <div>
-                            <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
-                                <div class="min-w-0">
-                                    <header class="mb-4 motion-safe:animate-rise">
-                                        <div class="mb-2 flex items-center gap-2 text-[13px] text-muted">
-                                            <Badge tone="muted" icon={ categoryIcon(data().category) }>{ categoryLabel(data().category) }</Badge>
-                                            <span class="nums flex min-w-0 items-center gap-1 truncate"><Icon name="clock" size={ 13 } class="shrink-0" />{ t('market.resolves') } { formatDateTime(data().endsAt, lang()) }</span>
-                                            <span class="ms-auto flex gap-1">
-                                                <FavoriteButton marketId={ data().id } size="md" />
-                                                <Tooltip label={ t('market.share') }>
-                                                    <button class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-control text-muted transition-colors duration-200 hover:bg-overlay hover:text-text" type="button" aria-label={ t('market.share') } onClick={ () => void share() }>
-                                                        <Icon name="share" size={ 17 } />
-                                                    </button>
-                                                </Tooltip>
-                                            </span>
-                                        </div>
-                                        <div class="flex items-start gap-3">
-                                            <MarketAvatar image={ data().image } emoji={ data().emoji } size="lg" />
-                                            <h1 class="text-xl font-bold leading-snug sm:text-2xl">{ text(data().title) }</h1>
-                                        </div>
-                                        <Show when={ !open }>
-                                            <div class={ data().status === 'resolved'
+        <Show when={ market.data() } let={ data }>
+            <Show when={ outcome } let={ lead }>
+                <div>
+                    <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
+                        <div class="min-w-0">
+                            <header class="mb-4 motion-safe:animate-rise">
+                                <div class="mb-2 flex items-center gap-2 text-[13px] text-muted">
+                                    <Badge tone="muted" icon={ categoryIcon(data.category) }>{ categoryLabel(data.category) }</Badge>
+                                    <span class="nums flex min-w-0 items-center gap-1 truncate"><Icon name="clock" size={ 13 } class="shrink-0" />{ t('market.resolves') } { formatDateTime(data.endsAt, lang()) }</span>
+                                    <span class="ms-auto flex gap-1">
+                                        <FavoriteButton marketId={ data.id } size="md" />
+                                        <Tooltip label={ t('market.share') }>
+                                            <button class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-control text-muted transition-colors duration-200 hover:bg-overlay hover:text-text" type="button" aria-label={ t('market.share') } onClick={ () => void share() }>
+                                                <Icon name="share" size={ 17 } />
+                                            </button>
+                                        </Tooltip>
+                                    </span>
+                                </div>
+                                <div class="flex items-start gap-3">
+                                    <MarketAvatar image={ data.image } emoji={ data.emoji } size="lg" />
+                                    <h1 class="text-xl font-bold leading-snug sm:text-2xl">{ text(data.title) }</h1>
+                                </div>
+                                <Show when={ !open }>
+                                    <div class={ data.status === 'resolved'
                                                 ? 'mt-3 flex items-center gap-2 rounded-control bg-yes-soft px-3 py-2 text-[13px] font-semibold text-yes'
                                                 : 'mt-3 flex items-center gap-2 rounded-control bg-overlay px-3 py-2 text-[13px] font-semibold text-muted' }>
-                                                <Icon name={ data().status === 'resolved' ? 'trophy' : 'info' } size={ 15 } />
-                                                <span>{ t(`market.status_${ data().status }` as 'market.status_resolved') }</span>
-                                                <Show when={ data().status === 'resolved' && data().winningOutcomeId !== null }>
-                                                    <span class="font-bold">
-                                                        { data().winningOutcomeId === 'yes' ? t('market.yes') : data().winningOutcomeId === 'no' ? t('market.no') : text(outcomes.find((entry) => entry.id === data().winningOutcomeId)?.label ?? { en: '', fa: '' }) }
-                                                    </span>
-                                                </Show>
-                                            </div>
+                                        <Icon name={ data.status === 'resolved' ? 'trophy' : 'info' } size={ 15 } />
+                                        <span>{ t(`market.status_${ data.status }` as 'market.status_resolved') }</span>
+                                        <Show when={ data.status === 'resolved' && data.winningOutcomeId !== null }>
+                                            <span class="font-bold">
+                                                        { data.winningOutcomeId === 'yes' ? t('market.yes') : data.winningOutcomeId === 'no' ? t('market.no') : text(outcomes.find((entry) => entry.id === data.winningOutcomeId)?.label ?? { en: '', fa: '' }) }
+                                            </span>
                                         </Show>
-                                        <div class="mt-3 flex items-center gap-4">
-                                            <p class="text-3xl font-bold text-brand"><Ticker text={ formatOdds(lead().price, lang(), oddsMode()) } value={ lead().price } /></p>
-                                            <Badge tone={ lead().change24h >= 0 ? 'yes' : 'no' } icon={ lead().change24h >= 0 ? 'trending-up' : 'trending-down' }>
-                                                <span class="latin-nums" dir="ltr">{ formatPoints(lead().change24h, lang()) } { t('market.points') }</span>
-                                            </Badge>
-                                            <span class="nums ms-auto flex items-center gap-1 text-[13px] text-faint"><Icon name="volume" size={ 14 } />{ formatVolume(data().volume, lang()) }</span>
-                                        </div>
-                                    </header>
+                                    </div>
+                                </Show>
+                                <div class="mt-3 flex items-center gap-4">
+                                    <p class="text-3xl font-bold text-brand"><Ticker text={ formatOdds(lead.price, lang(), oddsMode()) } value={ lead.price } /></p>
+                                    <Badge tone={ lead.change24h >= 0 ? 'yes' : 'no' } icon={ lead.change24h >= 0 ? 'trending-up' : 'trending-down' }>
+                                        <span class="latin-nums" dir="ltr">{ formatPoints(lead.change24h, lang()) } { t('market.points') }</span>
+                                    </Badge>
+                                    <span class="nums ms-auto flex items-center gap-1 text-[13px] text-faint"><Icon name="volume" size={ 14 } />{ formatVolume(data.volume, lang()) }</span>
+                                </div>
+                            </header>
 
-                                    <Card animate="rise" class="mb-5">
-                                        <div class="mb-3 flex items-center justify-between gap-2">
-                                            <Show when={ !isBinary(data()) }>
-                                                <div class="rail gap-1.5">
-                                                    <For each={ outcomes } key={ (entry) => entry.id }>
-                                                        { (entry) =>
-                                                            <button
-                                                                class={ lead().id === entry.id
+                            <Card animate="rise" class="mb-5">
+                                <div class="mb-3 flex items-center justify-between gap-2">
+                                    <Show when={ !isBinary(data) }>
+                                        <div class="rail gap-1.5">
+                                            <For each={ outcomes } key={ (entry) => entry.id } let={ entry }>
+                                                <button
+                                                    class={ lead.id === entry.id
                                                                     ? 'h-8 shrink-0 cursor-pointer rounded-full bg-text px-3 text-[12px] font-bold text-surface'
                                                                     : 'h-8 shrink-0 cursor-pointer rounded-full border border-line px-3 text-[12px] font-semibold text-muted transition-colors duration-200 hover:text-text' }
-                                                                type="button"
-                                                                onClick={ () => chosenOutcomeId = entry.id }
-                                                            >
+                                                    type="button"
+                                                    onClick={ () => chosenOutcomeId = entry.id }
+                                                >
                                                                 { text(entry.label) }
-                                                            </button>
-                                                        }
-                                                    </For>
-                                                </div>
-                                            </Show>
-                                            <PillGroup
-                                                items={ [...RANGES].map((entry) => ({ id: entry, label: entry })) }
-                                                active={ range }
-                                                onChange={ (next) => range = next as Range }
-                                                latinNums
-                                                class="ms-auto"
+                                                </button>
+                                            </For>
+                                        </div>
+                                    </Show>
+                                    <PillGroup
+                                        items={ [...RANGES].map((entry) => ({ id: entry, label: entry })) }
+                                        active={ range }
+                                        onChange={ (next) => range = next as Range }
+                                        latinNums
+                                        class="ms-auto"
                                             />
-                                        </div>
-                                        <div class="h-44">
-                                            <Show when={ !series.loading() } fallback={ <Skeleton class="h-full rounded-control" /> }>
-                                                <Chart points={ series.data()?.points ?? [] } class="h-full" />
-                                            </Show>
-                                        </div>
-                                    </Card>
+                                </div>
+                                <div class="h-44">
+                                    <Show when={ !series.loading() } fallback={ <Skeleton class="h-full rounded-control" /> }>
+                                        <Chart points={ series.data()?.points ?? [] } class="h-full" />
+                                    </Show>
+                                </div>
+                            </Card>
 
-                                    <Card padding="none" animate="rise" class="mb-5">
-                                        <button
-                                            class="flex h-12 w-full cursor-pointer items-center gap-2 px-4 text-[14px] font-bold"
-                                            type="button"
-                                            aria-expanded={ rulesOpen ? 'true' : 'false' }
-                                            onClick={ () => rulesOpen = !rulesOpen }
-                                        >
-                                            <Icon name="rules" size={ 16 } class="text-muted" />
-                                            <span>{ t('market.rules') }</span>
-                                            <Icon name={ rulesOpen ? 'chevron-up' : 'chevron-down' } size={ 16 } class="ms-auto text-faint" />
-                                        </button>
-                                        <Show when={ rulesOpen }>
-                                            <p class="border-t border-line px-4 py-3 text-[14px] leading-relaxed text-muted motion-safe:animate-fade">{ text(data().rules) }</p>
-                                        </Show>
-                                    </Card>
+                            <Card padding="none" animate="rise" class="mb-5">
+                                <button
+                                    class="flex h-12 w-full cursor-pointer items-center gap-2 px-4 text-[14px] font-bold"
+                                    type="button"
+                                    aria-expanded={ rulesOpen ? 'true' : 'false' }
+                                    onClick={ () => rulesOpen = !rulesOpen }
+                                >
+                                    <Icon name="rules" size={ 16 } class="text-muted" />
+                                    <span>{ t('market.rules') }</span>
+                                    <Icon name={ rulesOpen ? 'chevron-up' : 'chevron-down' } size={ 16 } class="ms-auto text-faint" />
+                                </button>
+                                <Show when={ rulesOpen }>
+                                    <p class="border-t border-line px-4 py-3 text-[14px] leading-relaxed text-muted motion-safe:animate-fade">{ text(data.rules) }</p>
+                                </Show>
+                            </Card>
 
-                                    <div class="mb-6 motion-safe:animate-rise">
-                                        <Tabs
-                                            tabs={ [
+                            <div class="mb-6 motion-safe:animate-rise">
+                                <Tabs
+                                    tabs={ [
                                                 { id: 'activity', label: t('market.activity') },
                                                 { id: 'holders', label: t('market.holders') }
                                             ] }
-                                            active={ tab }
-                                            onChange={ (next) => tab = next }
+                                    active={ tab }
+                                    onChange={ (next) => tab = next }
                                         />
-                                        <div class="pt-3">
-                                            <Show when={ tab === 'activity' && activity.loading() }>
-                                                <SkeletonList count={ 3 } height="h-9" class="pt-1" />
-                                            </Show>
-                                            <Show when={ tab === 'activity' && !activity.loading() }>
-                                                <ul class="flex flex-col">
-                                                    <For each={ activityRows } key={ (entry) => entry.id }>
-                                                        { (entry) =>
-                                                            <li class="flex items-center gap-3 border-b border-line py-2.5 text-[13px] last:border-b-0">
-                                                                <span class={ entry.side === 'yes' ? 'h-2 w-2 shrink-0 rounded-full bg-yes' : 'h-2 w-2 shrink-0 rounded-full bg-no' } aria-hidden="true"></span>
-                                                                <span class="min-w-0 flex-1 truncate">
-                                                                    <span class="nums latin-nums font-semibold" dir="ltr">{ shortAddress(entry.user) }</span>
-                                                                    <span class="text-muted"> { entry.action === 'buy' ? t('market.bought') : t('market.sold') } </span>
-                                                                    <span class="nums font-semibold">{ formatShares(entry.shares, lang()) }</span>
-                                                                    <span class={ entry.side === 'yes' ? 'font-semibold text-yes' : 'font-semibold text-no' }> { entry.side === 'yes' ? t('market.yes') : t('market.no') } </span>
-                                                                    <span class="nums text-muted">@ { formatFillPrice(entry.price, lang()) }</span>
-                                                                </span>
-                                                                <span class="shrink-0 text-faint">{ formatTimeAgo(entry.at, lang()) }</span>
-                                                            </li>
-                                                        }
-                                                    </For>
-                                                </ul>
-                                                <div class="mt-4">
-                                                    <Pagination page={ activity.data()?.page ?? 1 } pages={ activity.data()?.pages ?? 1 } onChange={ (next) => activityPage = next } />
-                                                </div>
-                                            </Show>
-                                            <Show when={ tab === 'holders' && holders.loading() }>
-                                                <SkeletonList count={ 3 } height="h-9" class="pt-1" />
-                                            </Show>
-                                            <Show when={ tab === 'holders' && !holders.loading() }>
-                                                <ul class="flex flex-col">
-                                                    <For each={ holderRows } key={ holderKey }>
-                                                        { (entry) =>
-                                                            <li class="flex items-center gap-3 border-b border-line py-2.5 text-[13px] last:border-b-0">
-                                                                <span class="flex h-7 w-7 items-center justify-center rounded-full bg-gold-soft text-[11px] font-bold text-gold" aria-hidden="true">{ entry.user.slice(2, 3).toUpperCase() }</span>
-                                                                <span class="nums latin-nums min-w-0 flex-1 truncate font-semibold" dir="ltr">{ shortAddress(entry.user) }</span>
-                                                                <Badge tone={ entry.side === 'yes' ? 'yes' : 'no' }>{ entry.side === 'yes' ? t('market.yes') : t('market.no') }</Badge>
-                                                                <span class="nums w-20 text-end font-semibold">{ formatShares(entry.shares, lang()) }</span>
-                                                            </li>
-                                                        }
-                                                    </For>
-                                                </ul>
-                                                <div class="mt-4">
-                                                    <Pagination page={ holders.data()?.page ?? 1 } pages={ holders.data()?.pages ?? 1 } onChange={ (next) => holdersPage = next } />
-                                                </div>
-                                            </Show>
+                                <div class="pt-3">
+                                    <Show when={ tab === 'activity' && activity.loading() }>
+                                        <SkeletonList count={ 3 } height="h-9" class="pt-1" />
+                                    </Show>
+                                    <Show when={ tab === 'activity' && !activity.loading() }>
+                                        <ul class="flex flex-col">
+                                            <For each={ activityRows } key={ (entry) => entry.id } let={ entry }>
+                                                <li class="flex items-center gap-3 border-b border-line py-2.5 text-[13px] last:border-b-0">
+                                                    <span class={ entry.side === 'yes' ? 'h-2 w-2 shrink-0 rounded-full bg-yes' : 'h-2 w-2 shrink-0 rounded-full bg-no' } aria-hidden="true"></span>
+                                                    <span class="min-w-0 flex-1 truncate">
+                                                        <span class="nums latin-nums font-semibold" dir="ltr">{ shortAddress(entry.user) }</span>
+                                                        <span class="text-muted"> { entry.action === 'buy' ? t('market.bought') : t('market.sold') } </span>
+                                                        <span class="nums font-semibold">{ formatShares(entry.shares, lang()) }</span>
+                                                        <span class={ entry.side === 'yes' ? 'font-semibold text-yes' : 'font-semibold text-no' }> { entry.side === 'yes' ? t('market.yes') : t('market.no') } </span>
+                                                        <span class="nums text-muted">@ { formatFillPrice(entry.price, lang()) }</span>
+                                                    </span>
+                                                    <span class="shrink-0 text-faint">{ formatTimeAgo(entry.at, lang()) }</span>
+                                                </li>
+                                            </For>
+                                        </ul>
+                                        <div class="mt-4">
+                                            <Pagination page={ activity.data()?.page ?? 1 } pages={ activity.data()?.pages ?? 1 } onChange={ (next) => activityPage = next } />
                                         </div>
-                                    </div>
-
-                                    <Show when={ related.length > 0 }>
-                                        <Rail
-                                            items={ related }
-                                            key={ (entry: Market) => entry.id }
-                                            label={ t('market.related') }
-                                            slotClass="w-[19rem] shrink-0 sm:w-[21rem] lg:w-[calc((100%-1rem)/2)] 2xl:w-[calc((100%-2rem)/3)]"
-                                            heading={ <h2 class="text-lg font-bold tracking-tight">{ t('market.related') }</h2> }
-                                        >
-                                            { (entry: Market) => <MarketCard market={ entry } /> }
-                                        </Rail>
+                                    </Show>
+                                    <Show when={ tab === 'holders' && holders.loading() }>
+                                        <SkeletonList count={ 3 } height="h-9" class="pt-1" />
+                                    </Show>
+                                    <Show when={ tab === 'holders' && !holders.loading() }>
+                                        <ul class="flex flex-col">
+                                            <For each={ holderRows } key={ holderKey } let={ entry }>
+                                                <li class="flex items-center gap-3 border-b border-line py-2.5 text-[13px] last:border-b-0">
+                                                    <span class="flex h-7 w-7 items-center justify-center rounded-full bg-gold-soft text-[11px] font-bold text-gold" aria-hidden="true">{ entry.user.slice(2, 3).toUpperCase() }</span>
+                                                    <span class="nums latin-nums min-w-0 flex-1 truncate font-semibold" dir="ltr">{ shortAddress(entry.user) }</span>
+                                                    <Badge tone={ entry.side === 'yes' ? 'yes' : 'no' }>{ entry.side === 'yes' ? t('market.yes') : t('market.no') }</Badge>
+                                                    <span class="nums w-20 text-end font-semibold">{ formatShares(entry.shares, lang()) }</span>
+                                                </li>
+                                            </For>
+                                        </ul>
+                                        <div class="mt-4">
+                                            <Pagination page={ holders.data()?.page ?? 1 } pages={ holders.data()?.pages ?? 1 } onChange={ (next) => holdersPage = next } />
+                                        </div>
                                     </Show>
                                 </div>
-
-                                <Show when={ open }>
-                                    <aside class={ `${ cardClass({}) } sticky top-20 hidden lg:block` }>
-                                        <TradeTicket market={ data() } outcome={ lead() } side={ pickedSide } onSideChange={ (next) => side = next } onConnect={ () => requestConnect() } onTraded={ () => { tradeOpen = false; refreshMarket(); } } />
-                                    </aside>
-                                </Show>
                             </div>
 
-                            <Show when={ open }>
-                                <div class="fixed inset-x-0 bottom-[calc(var(--tabbar-h)+env(safe-area-inset-bottom))] z-[var(--z-buybar)] border-t border-line bg-chrome px-4 py-2.5 backdrop-blur-md lg:hidden">
-                                    <Show
-                                        when={ data().noIndex !== null }
-                                        fallback={
+                            <Show when={ related.length > 0 }>
+                                <Rail
+                                    items={ related }
+                                    key={ (entry: Market) => entry.id }
+                                    label={ t('market.related') }
+                                    slotClass="w-[19rem] shrink-0 sm:w-[21rem] lg:w-[calc((100%-1rem)/2)] 2xl:w-[calc((100%-2rem)/3)]"
+                                    heading={ <h2 class="text-lg font-bold tracking-tight">{ t('market.related') }</h2> }
+                                >
+                                            { (entry: Market) => <MarketCard market={ entry } /> }
+                                </Rail>
+                            </Show>
+                        </div>
+
+                        <Show when={ open }>
+                            <aside class={ `${ cardClass({}) } sticky top-20 hidden lg:block` }>
+                                <TradeTicket market={ data } outcome={ lead } side={ pickedSide } onSideChange={ (next) => side = next } onConnect={ () => requestConnect() } onTraded={ () => { tradeOpen = false; refreshMarket(); } } />
+                            </aside>
+                        </Show>
+                    </div>
+
+                    <Show when={ open }>
+                        <div class="fixed inset-x-0 bottom-[calc(var(--tabbar-h)+env(safe-area-inset-bottom))] z-[var(--z-buybar)] border-t border-line bg-chrome px-4 py-2.5 backdrop-blur-md lg:hidden">
+                            <Show
+                                when={ data.noIndex !== null }
+                                fallback={
                                             <Button variant="primary" size="lg" block onClick={ () => { side = 'yes'; tradeOpen = true; } }>
-                                                { t('market.buy') } · { text(lead().label) }
+                                                { t('market.buy') } · { text(lead.label) }
                                             </Button>
                                         }
-                                    >
-                                        <OutcomePair yesPrice={ lead().price } size="lg" buyLabel onPick={ (picked) => { side = picked; tradeOpen = true; } } />
-                                    </Show>
-                                </div>
+                            >
+                                <OutcomePair yesPrice={ lead.price } size="lg" buyLabel onPick={ (picked) => { side = picked; tradeOpen = true; } } />
                             </Show>
-
-                            <Sheet open={ tradeOpen } title={ text(data().title) } onClose={ () => tradeOpen = false }>
-                                <TradeTicket market={ data() } outcome={ lead() } side={ pickedSide } onSideChange={ (next) => side = next } onConnect={ () => requestConnect() } onTraded={ () => { tradeOpen = false; refreshMarket(); } } />
-                            </Sheet>
                         </div>
-                    }
-                </Show>
-            }
+                    </Show>
+
+                    <Sheet open={ tradeOpen } title={ text(data.title) } onClose={ () => tradeOpen = false }>
+                        <TradeTicket market={ data } outcome={ lead } side={ pickedSide } onSideChange={ (next) => side = next } onConnect={ () => requestConnect() } onTraded={ () => { tradeOpen = false; refreshMarket(); } } />
+                    </Sheet>
+                </div>
+            </Show>
         </Show>
     </section>
 }

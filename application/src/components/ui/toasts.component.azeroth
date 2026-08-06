@@ -12,8 +12,10 @@ export default component Toasts()
         class="pointer-events-none fixed inset-x-0 bottom-[calc(var(--tabbar-h)+env(safe-area-inset-bottom)+0.75rem)] z-[var(--z-toast)] flex flex-col items-center gap-2 px-4 lg:bottom-6"
         aria-live="polite"
     >
-        <For each={ toasts.items() } key={ (toast) => toast.id }>
-            { (toast) => <ToastItem toast={ toast } onDismiss={ () => toasts.dismiss(toast.id) } /> }
+        <For each={ toasts.items() } key={ (toast) => toast.id } let={ toast }>
+            <div class="contents">
+                <ToastItem toast={ toast } onDismiss={ () => toasts.dismiss(toast.id) } />
+            </div>
         </For>
     </div>
 }

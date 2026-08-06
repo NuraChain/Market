@@ -166,18 +166,16 @@ export default component CreateMarketForm()
                 <p class="mt-1 text-[13px] text-muted">{ created?.address === null ? t('admin.createdUnparsed') : t('admin.createdHint') }</p>
                 <p class="nums latin-nums mt-3 break-all text-[12px] text-faint" dir="ltr">{ created?.address ?? created?.hash ?? '' }</p>
                 <div class="mt-4 flex justify-center gap-2">
-                    <Show when={ explorerTxUrl(created?.hash ?? '') }>
-                    { (url) =>
+                    <Show when={ explorerTxUrl(created?.hash ?? '') } let={ url }>
                         <a
                             class="flex h-10 items-center gap-1.5 rounded-control border border-line px-3.5 text-[14px] font-semibold text-muted transition-colors duration-200 hover:text-text"
-                            href={ url() }
+                            href={ url }
                             target="_blank"
                             rel="noreferrer"
                         >
                             <Icon name="external" size={ 15 } />
                             <span>{ t('chain.viewTx') }</span>
                         </a>
-                    }
                     </Show>
                     <Button variant="primary" size="sm" icon="plus" onClick={ () => again() }>{ t('admin.create') }</Button>
                 </div>
@@ -186,8 +184,7 @@ export default component CreateMarketForm()
     >
         <div class="mx-auto flex max-w-3xl flex-col gap-5">
             <nav class="rail rail-bleed gap-2" aria-label={ t('admin.createTitle') }>
-                <For each={ STEPS } key={ (entry) => entry }>
-                { (entry, index) =>
+                <For each={ STEPS } key={ (entry) => entry } let={ entry } index={ index }>
                     <button
                         class={ step === entry
                             ? 'flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-pill bg-brand px-4 text-[13px] font-bold text-on-brand'
@@ -201,7 +198,6 @@ export default component CreateMarketForm()
                             <Icon name="check" size={ 14 } />
                         </Show>
                     </button>
-                }
                 </For>
             </nav>
 
@@ -214,8 +210,7 @@ export default component CreateMarketForm()
                         <div>
                             <p class="mb-1.5 text-[12px] font-semibold text-muted">{ t('admin.formEmoji') }</p>
                             <div class="flex flex-wrap gap-1.5">
-                                <For each={ EMOJI } key={ (entry) => entry }>
-                                { (entry) =>
+                                <For each={ EMOJI } key={ (entry) => entry } let={ entry }>
                                     <button
                                         class={ draft.emoji() === entry
                                             ? 'flex h-10 w-10 cursor-pointer items-center justify-center rounded-control bg-brand-soft text-[19px] ring-1 ring-brand'
@@ -226,7 +221,6 @@ export default component CreateMarketForm()
                                     >
                                         { entry }
                                     </button>
-                                }
                                 </For>
                             </div>
                         </div>
@@ -254,17 +248,17 @@ export default component CreateMarketForm()
                                 </p>
                             </Show>
                             <div class="mt-2 flex flex-wrap gap-1.5">
-                                <For each={ suggestions } key={ (entry) => entry.id }>
-                                { (entry) =>
-                                    <Chip
-                                        compact
-                                        icon={ categoryIcon(entry.id) }
-                                        selected={ draft.category().trim().toLowerCase() === entry.id }
-                                        onSelect={ () => draft.setCategory(entry.id) }
-                                    >
-                                        { categories.label(entry.id) }
-                                    </Chip>
-                                }
+                                <For each={ suggestions } key={ (entry) => entry.id } let={ entry }>
+                                    <div class="contents">
+                                        <Chip
+                                            compact
+                                            icon={ categoryIcon(entry.id) }
+                                            selected={ draft.category().trim().toLowerCase() === entry.id }
+                                            onSelect={ () => draft.setCategory(entry.id) }
+                                        >
+                                            { categories.label(entry.id) }
+                                        </Chip>
+                                    </div>
                                 </For>
                             </div>
                         </div>
@@ -275,8 +269,7 @@ export default component CreateMarketForm()
 
                 <Show when={ step === 'outcomes' }>
                     <div class="flex flex-col gap-2.5">
-                        <For each={ draft.outcomes() } key={ (outcome) => String(outcome.id) }>
-                        { (outcome, index) =>
+                        <For each={ draft.outcomes() } key={ (outcome) => String(outcome.id) } let={ outcome } index={ index }>
                             <div class="flex flex-col gap-2 rounded-card border border-line p-3">
                                 <div class="flex items-center gap-2">
                                     <div class="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-2">
@@ -298,7 +291,6 @@ export default component CreateMarketForm()
                                 </div>
                                 <ImageField label={ t('admin.outcomeIcon') } value={ outcome.icon } onChange={ (uri) => draft.setOutcome(outcome.id, 'icon', uri) } />
                             </div>
-                        }
                         </For>
                         <Show when={ draft.outcomes().length < 16 }>
                             <Button variant="ghost" size="sm" icon="plus" onClick={ () => draft.addOutcome() }>{ t('admin.addOutcome') }</Button>
@@ -350,10 +342,8 @@ export default component CreateMarketForm()
                             </div>
                         </div>
                         <div class="flex flex-wrap gap-1.5">
-                            <For each={ names } key={ (outcome) => outcome.en }>
-                            { (outcome) =>
+                            <For each={ names } key={ (outcome) => outcome.en } let={ outcome }>
                                 <span class="rounded-pill bg-overlay px-3 py-1 text-[13px] font-semibold">{ outcome.en }{ outcome.fa === '' ? '' : ` / ${ outcome.fa }` }</span>
-                            }
                             </For>
                         </div>
                         <dl class="grid grid-cols-2 gap-2 text-[13px]">

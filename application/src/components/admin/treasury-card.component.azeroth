@@ -65,43 +65,41 @@ export default component TreasuryCard()
         <Show when={ admin.treasury.data() === undefined }>
             <Skeleton class="h-24 rounded-control" />
         </Show>
-        <Show when={ admin.treasury.data() }>
-            { (data) =>
-                <div class="flex flex-col gap-3">
-                    <div class="flex items-center justify-between gap-2 text-[13px]">
-                        <span class="text-muted">{ t('admin.totalCollected') }</span>
-                        <span class="nums latin-nums font-bold" dir="ltr">{ shortEther(data().totalCollected) } { chain.nativeCurrency.symbol }</span>
-                    </div>
-                    <div class="flex items-center justify-between gap-2 text-[13px]">
-                        <span class="text-muted">{ t('admin.feeRecipient') }</span>
-                        <span class="nums latin-nums text-faint" dir="ltr">{ shortAddress(data().feeRecipient) }</span>
-                    </div>
-                    <div class="flex items-center justify-between gap-2 text-[13px]">
-                        <span class="text-muted">{ t('admin.address') }</span>
-                        <span class="nums latin-nums text-faint" dir="ltr">{ shortAddress(config.data()?.treasury ?? '') }</span>
-                    </div>
-
-                    <Show
-                        when={ isOwner }
-                        fallback={ <p class="text-[12px] text-faint">{ t('admin.ownerOnly') }</p> }
-                    >
-                        <div class="flex flex-col gap-2 border-t border-line pt-3">
-                            <div class="flex items-center gap-2">
-                                <div class="flex-1">
-                                    <Input type="number" label={ t('admin.withdrawAmount') } placeholder={ t('admin.withdrawAmount') } value={ amount } onInput={ (next) => amount = next } />
-                                </div>
-                                <Button variant="gold" size="sm" icon="deposit" disabled={ !withdrawable || onchain.pending() } loading={ onchain.busy('withdraw') } onClick={ () => void withdraw() }>{ t('admin.withdraw') }</Button>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <div class="flex-1">
-                                    <Input label={ t('admin.feeRecipient') } placeholder="0x" value={ recipient } onInput={ (next) => recipient = next } />
-                                </div>
-                                <Button variant="outline" size="sm" disabled={ !/^0x[0-9a-fA-F]{40}$/.test(recipient) || onchain.pending() } loading={ onchain.busy('recipient') } onClick={ () => void changeRecipient() }>{ t('admin.changeRecipient') }</Button>
-                            </div>
-                        </div>
-                    </Show>
+        <Show when={ admin.treasury.data() } let={ data }>
+            <div class="flex flex-col gap-3">
+                <div class="flex items-center justify-between gap-2 text-[13px]">
+                    <span class="text-muted">{ t('admin.totalCollected') }</span>
+                    <span class="nums latin-nums font-bold" dir="ltr">{ shortEther(data.totalCollected) } { chain.nativeCurrency.symbol }</span>
                 </div>
-            }
+                <div class="flex items-center justify-between gap-2 text-[13px]">
+                    <span class="text-muted">{ t('admin.feeRecipient') }</span>
+                    <span class="nums latin-nums text-faint" dir="ltr">{ shortAddress(data.feeRecipient) }</span>
+                </div>
+                <div class="flex items-center justify-between gap-2 text-[13px]">
+                    <span class="text-muted">{ t('admin.address') }</span>
+                    <span class="nums latin-nums text-faint" dir="ltr">{ shortAddress(config.data()?.treasury ?? '') }</span>
+                </div>
+
+                <Show
+                    when={ isOwner }
+                    fallback={ <p class="text-[12px] text-faint">{ t('admin.ownerOnly') }</p> }
+                >
+                    <div class="flex flex-col gap-2 border-t border-line pt-3">
+                        <div class="flex items-center gap-2">
+                            <div class="flex-1">
+                                <Input type="number" label={ t('admin.withdrawAmount') } placeholder={ t('admin.withdrawAmount') } value={ amount } onInput={ (next) => amount = next } />
+                            </div>
+                            <Button variant="gold" size="sm" icon="deposit" disabled={ !withdrawable || onchain.pending() } loading={ onchain.busy('withdraw') } onClick={ () => void withdraw() }>{ t('admin.withdraw') }</Button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="flex-1">
+                                <Input label={ t('admin.feeRecipient') } placeholder="0x" value={ recipient } onInput={ (next) => recipient = next } />
+                            </div>
+                            <Button variant="outline" size="sm" disabled={ !/^0x[0-9a-fA-F]{40}$/.test(recipient) || onchain.pending() } loading={ onchain.busy('recipient') } onClick={ () => void changeRecipient() }>{ t('admin.changeRecipient') }</Button>
+                        </div>
+                    </div>
+                </Show>
+            </div>
         </Show>
     </Card>
 }

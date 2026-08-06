@@ -63,38 +63,36 @@ export default component AuthSheet()
 
             <Show when={ session.wallets().length > 0 }>
                 <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <For each={ session.wallets() } key={ (entry) => entry.rdns }>
-                        { (entry) =>
-                            <button
-                                class={ session.connecting() !== null && session.connecting() !== entry.rdns
+                    <For each={ session.wallets() } key={ (entry) => entry.rdns } let={ entry }>
+                        <button
+                            class={ session.connecting() !== null && session.connecting() !== entry.rdns
                                     ? 'flex h-14 cursor-pointer items-center gap-3 rounded-control border border-line bg-raised px-3 opacity-40 transition duration-200'
                                     : 'flex h-14 cursor-pointer items-center gap-3 rounded-control border border-line bg-raised px-3 transition duration-200 hover:border-line-strong hover:bg-overlay active:scale-[0.98]' }
-                                type="button"
-                                disabled={ session.connecting() !== null }
-                                onClick={ () => void pick(entry) }
-                            >
-                                <Show
-                                    when={ entry.brand }
-                                    fallback={
+                            type="button"
+                            disabled={ session.connecting() !== null }
+                            onClick={ () => void pick(entry) }
+                        >
+                            <Show
+                                when={ entry.brand }
+                                fallback={
                                         <span class="flex h-[26px] w-[26px] shrink-0 items-center justify-center overflow-hidden rounded-md bg-overlay">
                                             <Show when={ entry.icon !== '' } fallback={ <Icon name="wallet" size={ 15 } class="text-muted" /> }>
                                                 <img class="h-full w-full object-contain" src={ entry.icon } alt="" />
                                             </Show>
                                         </span>
                                     }
-                                >
-                                    { (brand) => <BrandIcon brand={ brand() } size={ 26 } /> }
+                                let={ brand }>
+                                <BrandIcon brand={ brand } size={ 26 } />
+                            </Show>
+                            <span class="min-w-0 flex-1 truncate text-start text-[13px] font-semibold">
+                                <Show when={ session.connecting() === entry.rdns } fallback={ <span>{ entry.name }</span> }>
+                                    <span class="text-muted">{ t('auth.connecting') }...</span>
                                 </Show>
-                                <span class="min-w-0 flex-1 truncate text-start text-[13px] font-semibold">
-                                    <Show when={ session.connecting() === entry.rdns } fallback={ <span>{ entry.name }</span> }>
-                                        <span class="text-muted">{ t('auth.connecting') }...</span>
-                                    </Show>
-                                </span>
-                                <Show when={ session.connecting() === entry.rdns }>
-                                    <span class="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-line border-t-brand" aria-hidden="true"></span>
-                                </Show>
-                            </button>
-                        }
+                            </span>
+                            <Show when={ session.connecting() === entry.rdns }>
+                                <span class="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-line border-t-brand" aria-hidden="true"></span>
+                            </Show>
+                        </button>
                     </For>
                 </div>
             </Show>
@@ -106,13 +104,11 @@ export default component AuthSheet()
                         <span>{ t('auth.noWallets') }</span>
                     </p>
                     <div class="grid grid-cols-2 gap-2">
-                        <For each={ suggestions } key={ (brand) => brand }>
-                            { (brand) =>
-                                <span class="flex h-12 items-center gap-3 rounded-control border border-line px-3 opacity-60">
-                                    <BrandIcon brand={ brand } size={ 22 } />
-                                    <span class="min-w-0 flex-1 truncate text-start text-[13px] font-semibold">{ WALLET_LABEL[brand] }</span>
-                                </span>
-                            }
+                        <For each={ suggestions } key={ (brand) => brand } let={ brand }>
+                            <span class="flex h-12 items-center gap-3 rounded-control border border-line px-3 opacity-60">
+                                <BrandIcon brand={ brand } size={ 22 } />
+                                <span class="min-w-0 flex-1 truncate text-start text-[13px] font-semibold">{ WALLET_LABEL[brand] }</span>
+                            </span>
                         </For>
                     </div>
                 </div>

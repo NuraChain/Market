@@ -404,6 +404,26 @@ export const adminMarketPage = object({
 });
 export type AdminMarketPage = Infer<typeof adminMarketPage>;
 
+/** The message a console signs to open an admin session; the timestamp makes it single-use. */
+export function sessionMessage(issuedAt: string): string
+{
+    return `AuctionHouse admin: sign in at ${ issuedAt }`;
+}
+
+/**
+ * Opening an admin session: the wallet signs `sessionMessage(issuedAt)` and the server
+ * checks both the signature and the on-chain role before issuing the cookie. Reading the
+ * console is a session-level act; the mutations below still demand a fresh signature.
+ */
+export const sessionInput = object({
+    address: string(),
+
+    /** ISO timestamp inside the signed message; the server rejects stale ones. */
+    issuedAt: string(),
+    signature: string()
+});
+export type SessionInput = Infer<typeof sessionInput>;
+
 /**
  * The featured-flag toggle, authenticated by wallet signature: the admin signs
  * `featureMessage(...)` and the server verifies both the signature and the on-chain role.

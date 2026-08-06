@@ -54,35 +54,35 @@ export default component Home()
             </EmptyState>
         </Show>
 
-        <Show when={ markets.data() }>
-            { (data) =>
-                <div>
-                    <FeaturedRail markets={ featured.data()?.rows ?? [] } />
+        <Show when={ markets.data() } let={ data }>
+            <div>
+                <FeaturedRail markets={ featured.data()?.rows ?? [] } />
 
-                    <h2 class="mb-3 text-lg font-bold tracking-tight">{ t('home.allMarkets') }</h2>
-                    <div class="mb-3">
-                        <CategoryRail selected={ category } onSelect={ (next) => { category = next; page = 1; } } />
-                    </div>
+                <h2 class="mb-3 text-lg font-bold tracking-tight">{ t('home.allMarkets') }</h2>
+                <div class="mb-3">
+                    <CategoryRail selected={ category } onSelect={ (next) => { category = next; page = 1; } } />
+                </div>
 
-                    <Show
-                        when={ data().rows.length > 0 }
-                        fallback={
+                <Show
+                    when={ data.rows.length > 0 }
+                    fallback={
                             <EmptyState icon="search" title={ t('browse.noResults') } hint={ t('browse.noResultsHint') }>
                                 <Button variant="outline" icon="flame" onClick={ () => category = 'all' }>{ t('categories.all') }</Button>
                             </EmptyState>
                         }
-                    >
-                        <div class={ MARKET_GRID }>
-                            <For each={ data().rows } key={ (market) => market.id }>
-                                { (market) => <MarketCard market={ market } /> }
-                            </For>
-                        </div>
-                        <div class="mt-6">
-                            <Pagination page={ data().page } pages={ data().pages } onChange={ (next) => page = next } />
-                        </div>
-                    </Show>
-                </div>
-            }
+                >
+                    <div class={ MARKET_GRID }>
+                        <For each={ data.rows } key={ (market) => market.id } let={ market }>
+                            <div class="contents">
+                                <MarketCard market={ market } />
+                            </div>
+                        </For>
+                    </div>
+                    <div class="mt-6">
+                        <Pagination page={ data.page } pages={ data.pages } onChange={ (next) => page = next } />
+                    </div>
+                </Show>
+            </div>
         </Show>
     </section>
 }

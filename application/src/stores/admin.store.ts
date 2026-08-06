@@ -6,6 +6,7 @@ import
     client,
     categoryMessage,
     featureMessage,
+    sessionMessage,
     type ActivityPage,
     type AdminMarketPage,
     type AdminStats,
@@ -157,14 +158,37 @@ export const useAdmin = createStore((): AdminApi =>
 
     const admitted = (): boolean => role.data() === true;
 
+    // One signature per session, not per request: the console reads a lot and a wallet
+    // prompt on every poll would be unusable. The cookie is HttpOnly, so nothing on the
+    // page can read it back.
+    // Keyed by address: connecting a different admin wallet opens a new session rather
+    // than reusing the previous one's cookie.
+    const adminSession = createResource(
+        () => (admitted() ? session.address() : false),
+        async (address: string) =>
+        {
+            const wallet = await walletFor(session.provider(), address);
+            const issuedAt = new Date().toISOString();
+            const signature = await wallet.signMessage({
+                account: address as Address,
+                message: sessionMessage(issuedAt)
+            });
+            await client.admin.signIn({ input: { address, issuedAt, signature } });
+            return true;
+        },
+        { name: 'admin-session' }
+    );
+
+    const opened = (): boolean => admitted() && adminSession.data() === true;
+
     const stats = createResource(
-        () => (admitted() ? version() : false),
+        () => (opened() ? version() : false),
         () => client.admin.stats(),
         { name: 'admin-stats' }
     );
 
     const rows = createResource(
-        () => (admitted() ? `${ version() }|${ JSON.stringify(filters()) }` : false),
+        () => (opened() ? `${ version() }|${ JSON.stringify(filters()) }` : false),
         () =>
         {
             const active = filters();
@@ -183,19 +207,19 @@ export const useAdmin = createStore((): AdminApi =>
     const [feedPage, setFeedPage] = createSignal(1);
 
     const activity = createResource(
-        () => (admitted() ? `${ version() }|${ feedPage() }` : false),
+        () => (opened() ? `${ version() }|${ feedPage() }` : false),
         () => client.admin.activity({ query: { page: feedPage(), limit: 10 } }),
         { name: 'admin-activity' }
     );
 
     const treasury = createResource(
-        () => (admitted() && treasuryAddress() !== null ? `${ version() }|${ treasuryAddress() }` : false),
+        () => (opened() && treasuryAddress() !== null ? `${ version() }|${ treasuryAddress() }` : false),
         (key: string) => treasuryState(key.split('|')[1] as Address),
         { name: 'admin-treasury' }
     );
 
     const defaults = createResource(
-        () => (admitted() && factory() !== null ? `${ version() }|${ factory() }` : false),
+        () => (opened() && factory() !== null ? `${ version() }|${ factory() }` : false),
         (key: string) => factoryConfig(key.split('|')[1] as Address),
         { name: 'admin-defaults' }
     );

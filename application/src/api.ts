@@ -21,6 +21,7 @@ export
     decodeOutcomeMeta,
     decodeTextMeta,
     featureMessage,
+    sessionMessage,
     categoryMessage,
     uploadMessage
 } from '../../server/src/schemas.ts';

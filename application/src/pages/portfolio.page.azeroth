@@ -126,37 +126,35 @@ export default component Portfolio()
                 <Show when={ summary.loading() && summary.data() === undefined }>
                     <Skeleton class="mb-5 h-40 rounded-card" />
                 </Show>
-                <Show when={ summary.data() }>
-                    { (data) =>
-                        <div class="mb-8">
-                            <div class="mb-3 grid grid-cols-3 gap-2 motion-safe:animate-rise sm:gap-3">
-                                <StatTile label={ t('profile.positionsValue') } value={ formatMoney(data().current, lang(), { compact: true }) } />
-                                <StatTile label={ t('profile.biggestWin') } value={ formatSigned(biggestWin, lang()) } tone="yes" />
-                                <StatTile label={ t('profile.predictions') } value={ String((positions.data() ?? []).length) } />
-                            </div>
-
-                            <Card animate="rise">
-                                <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-                                    <div class="min-w-0">
-                                        <p class="text-[13px] text-muted">{ t('portfolio.profitLoss') }</p>
-                                        <p class={ data().profit >= 0 ? 'text-2xl font-bold text-yes sm:text-3xl' : 'text-2xl font-bold text-no sm:text-3xl' }><Ticker text={ formatSigned(data().profit, lang()) } value={ data().profit } /></p>
-                                        <p class="nums mt-0.5 text-[12px] text-faint">{ formatSigned(data().profitToday, lang()) } { t('common.today') } · { t('portfolio.balance') }: { formatMoney(data().balance, lang(), { compact: true }) }</p>
-                                    </div>
-                                    <PillGroup
-                                        items={ [...PERIODS].map((entry) => ({ id: entry, label: t(`leaderboard.${ entry }`) })) }
-                                        active={ period }
-                                        onChange={ (next) => period = next as Period }
-                                        class="max-w-full overflow-x-auto"
-                                    />
-                                </div>
-                                <div class="h-32">
-                                    <Show when={ !profitCurve.loading() } fallback={ <Skeleton class="h-full rounded-control" /> }>
-                                        <Chart points={ profitCurve.data()?.points ?? [] } tone={ data().profit >= 0 ? 'brand' : 'no' } class="h-full" />
-                                    </Show>
-                                </div>
-                            </Card>
+                <Show when={ summary.data() } let={ data }>
+                    <div class="mb-8">
+                        <div class="mb-3 grid grid-cols-3 gap-2 motion-safe:animate-rise sm:gap-3">
+                            <StatTile label={ t('profile.positionsValue') } value={ formatMoney(data.current, lang(), { compact: true }) } />
+                            <StatTile label={ t('profile.biggestWin') } value={ formatSigned(biggestWin, lang()) } tone="yes" />
+                            <StatTile label={ t('profile.predictions') } value={ String((positions.data() ?? []).length) } />
                         </div>
-                    }
+
+                        <Card animate="rise">
+                            <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                                <div class="min-w-0">
+                                    <p class="text-[13px] text-muted">{ t('portfolio.profitLoss') }</p>
+                                    <p class={ data.profit >= 0 ? 'text-2xl font-bold text-yes sm:text-3xl' : 'text-2xl font-bold text-no sm:text-3xl' }><Ticker text={ formatSigned(data.profit, lang()) } value={ data.profit } /></p>
+                                    <p class="nums mt-0.5 text-[12px] text-faint">{ formatSigned(data.profitToday, lang()) } { t('common.today') } · { t('portfolio.balance') }: { formatMoney(data.balance, lang(), { compact: true }) }</p>
+                                </div>
+                                <PillGroup
+                                    items={ [...PERIODS].map((entry) => ({ id: entry, label: t(`leaderboard.${ entry }`) })) }
+                                    active={ period }
+                                    onChange={ (next) => period = next as Period }
+                                    class="max-w-full overflow-x-auto"
+                                    />
+                            </div>
+                            <div class="h-32">
+                                <Show when={ !profitCurve.loading() } fallback={ <Skeleton class="h-full rounded-control" /> }>
+                                    <Chart points={ profitCurve.data()?.points ?? [] } tone={ data.profit >= 0 ? 'brand' : 'no' } class="h-full" />
+                                </Show>
+                            </div>
+                        </Card>
+                    </div>
                 </Show>
 
                 <div class="mb-8">
@@ -209,25 +207,23 @@ export default component Portfolio()
                                 }
                             >
                                 <ul class="grid grid-cols-1 gap-3">
-                                    <For each={ positionsView.rows } key={ (position) => position.id }>
-                                        { (position) =>
-                                            <li>
-                                                <Link to={ `/market/${ position.marketId }` } class={ `${ cardClass({ interactive: true, animate: 'rise' }) } flex items-center gap-3 text-text no-underline` }>
-                                                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-overlay text-xl" aria-hidden="true">{ position.market.emoji }</span>
-                                                    <span class="min-w-0 flex-1">
-                                                        <span class="block truncate text-[14px] font-bold">{ text(position.market.title) }</span>
-                                                        <span class="mt-0.5 flex items-center gap-2 text-[12px] text-muted">
-                                                            <Badge tone={ position.side === 'yes' ? 'yes' : 'no' }>{ position.side === 'yes' ? t('market.yes') : t('market.no') }</Badge>
-                                                            <span class="nums">{ formatShares(position.shares, lang()) } × { formatFillPrice(position.avgPrice, lang()) }</span>
-                                                        </span>
+                                    <For each={ positionsView.rows } key={ (position) => position.id } let={ position }>
+                                        <li>
+                                            <Link to={ `/market/${ position.marketId }` } class={ `${ cardClass({ interactive: true, animate: 'rise' }) } flex items-center gap-3 text-text no-underline` }>
+                                                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-overlay text-xl" aria-hidden="true">{ position.market.emoji }</span>
+                                                <span class="min-w-0 flex-1">
+                                                    <span class="block truncate text-[14px] font-bold">{ text(position.market.title) }</span>
+                                                    <span class="mt-0.5 flex items-center gap-2 text-[12px] text-muted">
+                                                        <Badge tone={ position.side === 'yes' ? 'yes' : 'no' }>{ position.side === 'yes' ? t('market.yes') : t('market.no') }</Badge>
+                                                        <span class="nums">{ formatShares(position.shares, lang()) } × { formatFillPrice(position.avgPrice, lang()) }</span>
                                                     </span>
-                                                    <span class="text-end">
-                                                        <span class="nums block text-[15px] font-bold">{ formatMoney(valueOf(position), lang(), { compact: true }) }</span>
-                                                        <span class={ gainOf(position) >= 0 ? 'nums block text-[12px] font-semibold text-yes' : 'nums block text-[12px] font-semibold text-no' }>{ formatSigned(gainOf(position), lang()) }</span>
-                                                    </span>
-                                                </Link>
-                                            </li>
-                                        }
+                                                </span>
+                                                <span class="text-end">
+                                                    <span class="nums block text-[15px] font-bold">{ formatMoney(valueOf(position), lang(), { compact: true }) }</span>
+                                                    <span class={ gainOf(position) >= 0 ? 'nums block text-[12px] font-semibold text-yes' : 'nums block text-[12px] font-semibold text-no' }>{ formatSigned(gainOf(position), lang()) }</span>
+                                                </span>
+                                            </Link>
+                                        </li>
                                     </For>
                                 </ul>
                                 <div class="mt-5">
@@ -243,20 +239,18 @@ export default component Portfolio()
                 </Show>
                 <Show when={ tab === 'activity' && !activity.loading() }>
                     <ul class="flex flex-col pt-3">
-                        <For each={ activityView.rows } key={ (entry) => entry.id }>
-                            { (entry) =>
-                                <li class="flex items-center gap-3 border-b border-line py-2.5 text-[13px] last:border-b-0">
-                                    <span class={ entry.side === 'yes' ? 'h-2 w-2 shrink-0 rounded-full bg-yes' : 'h-2 w-2 shrink-0 rounded-full bg-no' } aria-hidden="true"></span>
-                                    <span class="min-w-0 flex-1 truncate">
-                                        <span class="text-muted">{ entry.action === 'buy' ? t('market.bought') : t('market.sold') } </span>
-                                        <span class="nums font-semibold">{ formatShares(entry.shares, lang()) }</span>
-                                        <span class={ entry.side === 'yes' ? 'font-semibold text-yes' : 'font-semibold text-no' }> { entry.side === 'yes' ? t('market.yes') : t('market.no') } </span>
-                                        <span class="text-muted">· { titleOf(entry.marketId) }</span>
-                                    </span>
-                                    <span class="nums shrink-0 text-muted">@ { formatFillPrice(entry.price, lang()) }</span>
-                                    <span class="shrink-0 text-faint">{ formatTimeAgo(entry.at, lang()) }</span>
-                                </li>
-                            }
+                        <For each={ activityView.rows } key={ (entry) => entry.id } let={ entry }>
+                            <li class="flex items-center gap-3 border-b border-line py-2.5 text-[13px] last:border-b-0">
+                                <span class={ entry.side === 'yes' ? 'h-2 w-2 shrink-0 rounded-full bg-yes' : 'h-2 w-2 shrink-0 rounded-full bg-no' } aria-hidden="true"></span>
+                                <span class="min-w-0 flex-1 truncate">
+                                    <span class="text-muted">{ entry.action === 'buy' ? t('market.bought') : t('market.sold') } </span>
+                                    <span class="nums font-semibold">{ formatShares(entry.shares, lang()) }</span>
+                                    <span class={ entry.side === 'yes' ? 'font-semibold text-yes' : 'font-semibold text-no' }> { entry.side === 'yes' ? t('market.yes') : t('market.no') } </span>
+                                    <span class="text-muted">· { titleOf(entry.marketId) }</span>
+                                </span>
+                                <span class="nums shrink-0 text-muted">@ { formatFillPrice(entry.price, lang()) }</span>
+                                <span class="shrink-0 text-faint">{ formatTimeAgo(entry.at, lang()) }</span>
+                            </li>
                         </For>
                     </ul>
                     <div class="mt-5">

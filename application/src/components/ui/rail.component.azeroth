@@ -140,8 +140,8 @@ export default component Rail<T>(props: {
                 ref={ (element) => { rail = element; } }
                 onScroll={ () => measure() }
             >
-                <For each={ props.items } key={ props.key }>
-                { (item) => <div class={ props.slotClass }>{ props.children(item) }</div> }
+                <For each={ props.items } key={ props.key } let={ item }>
+                    <div class={ props.slotClass }>{ props.children(item) }</div>
                 </For>
             </div>
 
@@ -172,8 +172,7 @@ export default component Rail<T>(props: {
 
             <Show when={ props.dots !== false && pages > 1 }>
                 <div class="mt-3 hidden justify-center gap-1.5 lg:flex">
-                    <For each={ Array.from({ length: pages }, (_item, position) => position) } key={ (position) => position }>
-                    { (position) =>
+                    <For each={ Array.from({ length: pages }, (_item, position) => position) } key={ (position) => position } let={ position }>
                         <button
                             class={ page === position
                                 ? 'h-1.5 w-5 rounded-full bg-brand transition-all duration-200'
@@ -183,7 +182,6 @@ export default component Rail<T>(props: {
                             aria-current={ page === position ? 'true' : 'false' }
                             onClick={ () => jump(position) }
                         ></button>
-                    }
                     </For>
                 </div>
             </Show>

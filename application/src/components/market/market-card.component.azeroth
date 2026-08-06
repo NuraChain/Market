@@ -88,8 +88,7 @@ export default component MarketCard(props: { market: Market })
 
         <Show when={ duel }>
             <div class="mb-3 flex flex-col gap-2">
-                <For each={ rows } key={ (outcome) => outcome.id }>
-                { (outcome, index) =>
+                <For each={ rows } key={ (outcome) => outcome.id } let={ outcome } index={ index }>
                     <div class="flex items-center gap-2">
                         <Show
                             when={ outcome.icon !== '' }
@@ -102,15 +101,14 @@ export default component MarketCard(props: { market: Market })
                         <span class="min-w-0 flex-1 truncate text-[13px] font-semibold">{ text(outcome.label) }</span>
                         <span class="nums shrink-0 text-[13px] font-bold">{ outcomeOdds[index] ?? '-' }</span>
                     </div>
-                }
                 </For>
                 <div class="flex gap-2.5">
-                    <For each={ rows } key={ (outcome) => outcome.id }>
-                    { (outcome, index) =>
-                        <Link to={ `${ rowPath(outcome.id) }&side=yes` } class={ SIDE[index] ?? SIDE[0]! }>
-                            <span class="truncate">{ text(outcome.label) }</span>
-                        </Link>
-                    }
+                    <For each={ rows } key={ (outcome) => outcome.id } let={ outcome } index={ index }>
+                        <div class="contents">
+                            <Link to={ `${ rowPath(outcome.id) }&side=yes` } class={ SIDE[index] ?? SIDE[0]! }>
+                                <span class="truncate">{ text(outcome.label) }</span>
+                            </Link>
+                        </div>
                     </For>
                 </div>
             </div>
@@ -118,16 +116,16 @@ export default component MarketCard(props: { market: Market })
 
         <Show when={ !binary && !duel }>
             <div class="mb-3 flex flex-col gap-2">
-                <For each={ rows } key={ (outcome) => outcome.id }>
-                { (outcome, index) =>
-                    <OutcomeRow
-                        label={ text(outcome.label) }
-                        icon={ outcome.icon }
-                        odds={ outcomeOdds[index] ?? '' }
-                        to={ rowPath(outcome.id) }
-                        outcomeId={ outcome.id }
-                    />
-                }
+                <For each={ rows } key={ (outcome) => outcome.id } let={ outcome } index={ index }>
+                    <div class="contents">
+                        <OutcomeRow
+                            label={ text(outcome.label) }
+                            icon={ outcome.icon }
+                            odds={ outcomeOdds[index] ?? '' }
+                            to={ rowPath(outcome.id) }
+                            outcomeId={ outcome.id }
+                        />
+                    </div>
                 </For>
                 <Show when={ props.market.outcomes.length > 3 }>
                     <Link to={ detailPath } class="text-[12px] font-semibold text-faint no-underline hover:text-muted">{ t('common.seeMore') }</Link>

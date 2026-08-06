@@ -81,8 +81,7 @@ export default component Admin()
 
                     <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-[13rem_minmax(0,1fr)]">
                         <nav class="rail rail-bleed rail-fade min-w-0 gap-2 lg:sticky lg:top-20 lg:flex-col lg:gap-1" aria-label={ t('admin.title') }>
-                            <For each={ sections } key={ (entry) => entry.id }>
-                            { (entry) =>
+                            <For each={ sections } key={ (entry) => entry.id } let={ entry }>
                                 <button
                                     class={ section === entry.id
                                         ? 'flex h-11 shrink-0 cursor-pointer items-center gap-2.5 rounded-control bg-overlay px-3.5 text-[14px] font-bold text-text lg:w-full'
@@ -93,7 +92,6 @@ export default component Admin()
                                     <Icon name={ entry.icon } size={ 17 } />
                                     <span>{ entry.label }</span>
                                 </button>
-                            }
                             </For>
                         </nav>
 

@@ -52,8 +52,7 @@ export default component Leaderboard()
 
             <Show when={ !rows.loading() && paged.rows.length > 0 }>
                 <ol class="grid grid-cols-1 gap-2.5">
-                    <For each={ paged.rows } key={ (row) => `${ period }-${ row.rank }` }>
-                    { (row) =>
+                    <For each={ paged.rows } key={ (row) => `${ period }-${ row.rank }` } let={ row }>
                         <li class="motion-safe:animate-rise">
                             <div class={ `${ cardClass({ tone: row.address === session.address().toLowerCase() ? 'brand' : 'line', padding: 'snug' }) } flex items-center gap-3` }>
                                 <Show
@@ -79,7 +78,6 @@ export default component Leaderboard()
                                 <span class={ row.profit >= 0 ? 'nums shrink-0 text-[15px] font-bold text-yes' : 'nums shrink-0 text-[15px] font-bold text-no' }>{ formatSigned(row.profit, lang()) }</span>
                             </div>
                         </li>
-                    }
                     </For>
                 </ol>
                 <div class="mt-5">

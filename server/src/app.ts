@@ -1,9 +1,11 @@
-import { App, json, BadRequestError, ForbiddenError, NotFoundError, type RequestObserver } from '@azerothjs/http';
+import { App, json, BadRequestError, ForbiddenError, NotFoundError, UnauthorizedError, type RequestObserver } from '@azerothjs/http';
 import { staticFiles } from '@azerothjs/http/node';
 import { feature, manifestOf, register } from '@azerothjs/http/api';
 import { mountPages, type KitOptions } from '@azerothjs/kit';
 import { array } from '@azerothjs/schema';
 import { verifyMessage, type Address } from 'viem';
+
+import { type AdminSession } from './admin-session.ts';
 
 import
 {
@@ -18,6 +20,8 @@ import
     categoryMessage,
     chainConfig,
     featureInput,
+    sessionInput,
+    sessionMessage,
     featureMessage,
     featureResult,
     holderPage,
@@ -84,6 +88,13 @@ export interface ApiDeps
 
     /** Where uploaded image bytes land. Omit to refuse uploads (503) rather than pretend. */
     uploader?: Uploader;
+
+    /**
+     * Guards every /admin route. Omit ONLY in tests that assert the open surface;
+     * production wires it in main.ts, so a route added to the admin feature is
+     * protected because of the feature it lands in, not because someone remembered.
+     */
+    adminSession?: AdminSession;
 }
 
 export function createApi(deps: ApiDeps): ReturnType<typeof build>
@@ -92,7 +103,7 @@ export function createApi(deps: ApiDeps): ReturnType<typeof build>
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- the route literal IS the type; naming it would erase per-route inference
-function build({ store, chain, treasury, uploader }: ApiDeps)
+function build({ store, chain, treasury, uploader, adminSession }: ApiDeps)
 {
     const nowSeconds = (): number => Math.floor(Date.now() / 1000);
 
@@ -207,6 +218,18 @@ function build({ store, chain, treasury, uploader }: ApiDeps)
             throw new ForbiddenError('Bad signature');
         }
         await requireAdmin(params.address);
+    };
+
+    // The admin feature's guard. Reads the session cookie and attaches the signed-in
+    // address; every /admin route inherits it. Absent session wiring (a test that asserts
+    // the surface) means no admin API at all rather than an open one.
+    const requireAdminSession = (context: { request: Request }): { adminAddress: string } =>
+    {
+        if (adminSession === undefined)
+        {
+            throw new UnauthorizedError('Admin session required');
+        }
+        return adminSession.require(context.request);
     };
 
     const roleCache = new Map<string, { ok: boolean; at: number }>();
@@ -424,7 +447,36 @@ function build({ store, chain, treasury, uploader }: ApiDeps)
                 return leaderboard(store.tradeRollup(since), profitOf, 25);
             })
         })),
-        admin: feature('/admin', (routes) => ({
+        // Everything under /admin is behind the session by DEFAULT: a route added to this
+        // feature is guarded because of the feature it lands in, not because someone
+        // remembered a line. The two `routes.only(...)` calls below are the only ways past
+        // it, written AT the route where they are greppable.
+        admin: feature('/admin', [requireAdminSession], (routes) => ({
+            // Signing in IS how you get past the guard, so it cannot sit behind it. The
+            // wallet proves the address; the address must hold the on-chain role.
+            signIn: routes.only().post('/session', { input: sessionInput }, async (context) =>
+            {
+                if (adminSession === undefined)
+                {
+                    throw new NotFoundError();
+                }
+                const cookie = await adminSession.signIn(
+                    context.request,
+                    context.input.address,
+                    sessionMessage(context.input.issuedAt),
+                    context.input.signature
+                );
+                return new Response(null, { status: 204, headers: { 'set-cookie': cookie } });
+            }),
+
+            // Signing out clears a cookie. Requiring the session you are clearing would
+            // strand whoever needs it most.
+            signOut: routes.only().del('/session', {}, (context) =>
+                new Response(null, {
+                    status: 204,
+                    headers: adminSession === undefined ? {} : { 'set-cookie': adminSession.signOut(context.request) }
+                })),
+
             activity: routes.get('/activity', { query: activityQuery, output: activityPage }, ({ query }) =>
             {
                 const limit = query.limit ?? 10;

@@ -79,24 +79,24 @@ export default component Pagination(props: {
                 { status }
             </span>
             <span class="hidden items-center gap-1 sm:flex">
-                <For each={ window } key={ (entry) => entry.position }>
-                    { (entry) =>
+                <For each={ window } key={ (entry) => entry.position } let={ entry }>
+                    <div class="contents">
                         <Show
                             when={ entry.value !== 'gap' }
                             fallback={ <span class="w-6 text-center text-faint" aria-hidden="true">...</span> }
                         >
                             <button
                                 class={ entry.value === props.page
-                                    ? 'nums flex h-11 min-w-11 cursor-pointer items-center justify-center rounded-control bg-text px-2 text-[14px] font-bold text-surface'
-                                    : 'nums flex h-11 min-w-11 cursor-pointer items-center justify-center rounded-control px-2 text-[14px] font-semibold text-muted transition-colors duration-200 hover:bg-overlay hover:text-text' }
+                                        ? 'nums flex h-11 min-w-11 cursor-pointer items-center justify-center rounded-control bg-text px-2 text-[14px] font-bold text-surface'
+                                        : 'nums flex h-11 min-w-11 cursor-pointer items-center justify-center rounded-control px-2 text-[14px] font-semibold text-muted transition-colors duration-200 hover:bg-overlay hover:text-text' }
                                 type="button"
                                 aria-current={ entry.value === props.page ? 'page' : 'false' }
                                 onClick={ () => props.onChange(entry.value as number) }
                             >
-                                { lang() === 'fa' ? faDigits(String(entry.value)) : entry.value }
+                                    { lang() === 'fa' ? faDigits(String(entry.value)) : entry.value }
                             </button>
                         </Show>
-                    }
+                    </div>
                 </For>
             </span>
 

@@ -18,17 +18,15 @@ export default component AdminStats()
         <Show when={ admin.stats.loading() && admin.stats.data() === undefined }>
             <Skeleton class="h-20 rounded-card" />
         </Show>
-        <Show when={ admin.stats.data() }>
-            { (data) =>
-                <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 xl:grid-cols-6">
-                    <StatTile label={ t('admin.markets') } value={ count(data().markets) } />
-                    <StatTile label={ t('admin.tvl') } value={ formatMoney(data().tvl, lang(), { compact: true }) } />
-                    <StatTile label={ t('admin.volume') } value={ formatMoney(data().volume, lang(), { compact: true }) } />
-                    <StatTile label={ t('admin.volume24h') } value={ formatMoney(data().volume24h, lang(), { compact: true }) } tone="yes" />
-                    <StatTile label={ t('admin.traders') } value={ count(data().traders) } />
-                    <StatTile label={ t('admin.feesCollected') } value={ formatMoney(data().feesCollected, lang(), { compact: true }) } />
-                </div>
-            }
+        <Show when={ admin.stats.data() } let={ data }>
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 xl:grid-cols-6">
+                <StatTile label={ t('admin.markets') } value={ count(data.markets) } />
+                <StatTile label={ t('admin.tvl') } value={ formatMoney(data.tvl, lang(), { compact: true }) } />
+                <StatTile label={ t('admin.volume') } value={ formatMoney(data.volume, lang(), { compact: true }) } />
+                <StatTile label={ t('admin.volume24h') } value={ formatMoney(data.volume24h, lang(), { compact: true }) } tone="yes" />
+                <StatTile label={ t('admin.traders') } value={ count(data.traders) } />
+                <StatTile label={ t('admin.feesCollected') } value={ formatMoney(data.feesCollected, lang(), { compact: true }) } />
+            </div>
         </Show>
     </>
 }
